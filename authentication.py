@@ -2,6 +2,7 @@
 
 import getpass
 import requests
+from gel_report_config import *
 
 
 class APIAuthentication:
@@ -11,18 +12,22 @@ class APIAuthentication:
     """
 
     def __init__(self):
-        self.token_url = "https://cipapi.genomicsengland.nhs.uk/api/get-token/"
-        self.username =  "/home/mokaguys/Apps/CIP_API/auth_username.txt"
-        self.pw = "/home/mokaguys/Apps/CIP_API/auth_pw.txt"
-        self.token = self.get_token()
-        self.r_session = requests.Session()
+		# url to submit user info to generate token
+		self.token_url = "https://cipapi.genomicsengland.nhs.uk/api/get-token/"
+		# Call modules to generate token
+		self.token = self.get_token()
+		
+		
 
     def get_token(self):
-	with open(self.username,'r') as f:
-		username=f.readline()
-	with open(self.pw,'r') as f:
-		password=f.readline()
-        return requests.post(self.token_url, {"username": username, "password":password}).json()["token"]
+		# read username from file
+		with open(username,'r') as f:
+			user=f.readline()
+		#read password from file
+		with open(pw,'r') as f:
+			password=f.readline()
+		# use requests module to submit the credentials and return the token
+		return requests.post(self.token_url, {"username": user, "password":password},proxies=proxy).json()["token"]
 
 
 if __name__ == "__main__":

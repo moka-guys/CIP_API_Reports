@@ -1,5 +1,10 @@
 import pdfkit
-####################### requests module ##################
+####################### Authentication ##################
+# path to files containing
+username =  "/home/mokaguys/Apps/CIP_API/auth_username.txt"
+pw = "/home/mokaguys/Apps/CIP_API/auth_pw.txt"
+
+####################### Requests module ##################
 #the proxy settings for requests module
 proxy={'http':'proxy.gstt.local:80'}
 
