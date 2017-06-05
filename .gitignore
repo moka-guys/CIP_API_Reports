@@ -2,5 +2,4 @@ auth_pw.txt
 auth_username.txt
 test.py
 database_connection_config.py
-authentication.pyc
-gel_report_config.pyc
+*.pyc

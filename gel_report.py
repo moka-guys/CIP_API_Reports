@@ -48,6 +48,9 @@ class connect():
 
 		# Old banner colour
 		self.existing_banner_css="#007C83; /*#27b7cc;*/"
+		
+		# new banner colour
+		self.new_banner_css=new_banner_colour+";\n    height: 100px;"
 				
 		# Where to add in new participant information table
 		self.where_to_put_new_table="<h3>Participant Information</h3>"
@@ -66,9 +69,9 @@ class connect():
 		for opt, arg in opts:
 			if opt in ("-g"):
 				# capture the proband ID
-				self.proband_ID = arg
+				self.proband_id = str(arg)
 				
-		if self.proband_ID:
+		if self.proband_id:
 			#build paths to reports
 			self.html_report=html_reports+self.proband_id+".html"
 			self.pdf_report=pdf_dir+self.proband_id+".pdf"
@@ -79,7 +82,11 @@ class connect():
 	def read_API_page(self):
 		'''This function returns all the cases that can be viewed by the user defined by the authentication token'''
 		# use requests module to return all the cases available to you
-		response = requests.get(self.interpretationlist, headers={"Authorization": "JWT " + self.token},proxies=proxy)
+		# if proxy is set in the config file
+		if proxy:
+			response = requests.get(self.interpretationlist, headers={"Authorization": "JWT " + self.token},proxies=proxy) # note space is required after JWT 
+		else:
+			response = requests.get(self.interpretationlist, headers={"Authorization": "JWT " + self.token}) # note space is required after JWT 
 		# pass this in the json format to the parse_json function
 		self.parse_json(response.json())
 		
@@ -117,7 +124,11 @@ class connect():
 						
 							# take the most recent report generated for this CIP API (take the last report from the list of reports)
 							print sample["interpreted_genomes"][j]["clinical_reports"][-1]['url']
-							report=requests.get(sample["interpreted_genomes"][j]["clinical_reports"][-1]['url'],headers={"Authorization": "JWT " + self.token},proxies=proxy)
+							# if proxy is set in the config file
+							if proxy:
+								report=requests.get(sample["interpreted_genomes"][j]["clinical_reports"][-1]['url'],headers={"Authorization": "JWT " + self.token},proxies=proxy)# note space is required after JWT 
+							else:
+								report=requests.get(sample["interpreted_genomes"][j]["clinical_reports"][-1]['url'],headers={"Authorization": "JWT " + self.token})# note space is required after JWT 
 
 							# create an beautiful soup object for the html clinical report
 							soup=BeautifulSoup(report.content,"html.parser")
@@ -126,7 +137,7 @@ class connect():
 							soup=self.replace_gel_address(soup)
 
 							#pass to function to modify the header
-							soup=self.remove_GeL_logo(soup)
+							soup=self.replace_GeL_logo(soup)
 
 							# pass to function to expand coverage
 							soup=self.expand_coverage(soup)
@@ -145,7 +156,7 @@ class connect():
 								# if line contains the existing banner css
 								if self.existing_banner_css in line:
 									#replace that line in the file object
-									data[i]=line.replace(self.existing_banner_css,new_banner_css)
+									data[i]=line.replace(self.existing_banner_css,self.new_banner_css)
 								
 								if self.where_to_put_new_table in line:
 									# open template
@@ -245,14 +256,14 @@ class connect():
 				# return modified html
 				return html
 
-	def remove_GeL_logo(self,html):
+	def replace_GeL_logo(self,html):
 		'''This function removes the gel logo and changes the css for the report banner'''
 		# find the gel logo and remove it
 		for img in html.find_all('img', class_="logo"):
-			img.extract()
+			img['src']=new_logo
 		# resize the banner so it doesn't shrink after the logo has been removed
-		for banner in html.find_all('div', class_="banner-text"):
-			del(banner['class'])
+		#for banner in html.find_all('div', class_="banner-text"):
+	#		del(banner['class'])
 		return html
 
 
@@ -279,6 +290,8 @@ class connect():
 
 
 	def create_pdf(self,pdfreport_path,patient_info):
+		# add the path to wkhtmltopdf to the pdfkit config settings
+		pdfkitconfig = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
 		# create options to use in the footer
 		options={'footer-right':'Page [page] of [toPage]','footer-left':'Date Created [isodate]'}
 		# use Jinja to populate the variables within the html template

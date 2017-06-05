@@ -27,7 +27,11 @@ class APIAuthentication:
 		with open(pw,'r') as f:
 			password=f.readline()
 		# use requests module to submit the credentials and return the token
-		return requests.post(self.token_url, {"username": user, "password":password},proxies=proxy).json()["token"]
+		# if proxy is set in the config file:
+		if proxy:
+			return requests.post(self.token_url, {"username": user, "password":password},proxies=proxy).json()["token"]
+		else:
+			return requests.post(self.token_url, {"username": user, "password":password}).json()["token"]
 
 
 if __name__ == "__main__":
