@@ -1,4 +1,4 @@
-import pdfkit # required to set the wkhtmltopdf path
+
 ####################### Authentication ##################
 # path to files containing
 username =  "/home/mokaguys/Apps/CIP_API/auth_username.txt"
