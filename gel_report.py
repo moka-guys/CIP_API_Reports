@@ -105,6 +105,8 @@ class connect():
 				# if sample is blocked ignore
 				if sample["last_status"]=="blocked":
 					print "last status = blocked for proband "+str(self.proband_id)
+					# probably want to raise an exception here
+					raise Exception("last status = blocked for proband "+str(self.proband_id))
 				else:
 					# set flag to stop the search
 					found=True
@@ -120,7 +122,7 @@ class connect():
 					# for the highest cip version
 					for j in range(len(sample["interpreted_genomes"])):
 						if sample["interpreted_genomes"][j]["cip_version"]==max_cip_ver:
-						
+							
 							# take the most recent report generated for this CIP API (take the last report from the list of reports)
 							print sample["interpreted_genomes"][j]["clinical_reports"][-1]['url']
 							# if proxy is set in the config file
