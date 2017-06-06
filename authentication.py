@@ -1,6 +1,5 @@
 """ CIP-API Authentication module """
 
-import getpass
 import requests
 from gel_report_config import *
 
@@ -16,7 +15,6 @@ class APIAuthentication:
 		self.token_url = "https://cipapi.genomicsengland.nhs.uk/api/get-token/"
 		# Call modules to generate token
 		self.token = self.get_token()
-		
 		
 
     def get_token(self):

@@ -108,8 +108,7 @@ class connect():
 				else:
 					# set flag to stop the search
 					found=True
-					print "match"
-					
+										
 					# create a variable to hold the various cip versions
 					max_cip_ver=0
 
