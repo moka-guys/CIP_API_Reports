@@ -7,10 +7,8 @@ This report is then modified to make it clear that this report has not been issu
 Hopefully this solves a problem faced by many labs and prevents too much duplication of work!
 Created 02/06/2017 by Aled Jones
 '''
-from HTMLParser import HTMLParser
+#from HTMLParser import HTMLParser
 import requests
-# import the function from the authentication script which generates the access token
-from authentication import APIAuthentication
 from bs4 import BeautifulSoup
 import pdfkit
 import pyodbc
@@ -18,8 +16,10 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 import sys
 import getopt
-from gel_report_config import *
-from database_connection_config import *
+# Import local settings
+from authentication import APIAuthentication # import the function from the authentication script which generates the access token
+from gel_report_config import * # config file 
+from database_connection_config import * # database connection details
 
 
 class connect():
@@ -28,7 +28,7 @@ class connect():
 		self.token=APIAuthentication().get_token()
 	
 		# The link to the first page of the CIP API results
-		self.interpretationlist="https://cipapi.genomicsengland.nhs.uk/api/interpretationRequestsList/?format=json"
+		self.interpretationlist="https://cipapi.genomicsengland.nhs.uk/api/interpretationRequestsList/?format=json&page_size=100000"
 		
 		# The probandID to return the report for
 		self.proband_id=""
@@ -166,19 +166,22 @@ class connect():
 										#print template_to_write
 									for template_line in reversed(template_to_write):
 										data[i]="".join(template_to_write)
-									#data.remove(data[i])
+																		
 							#write the modified list back to a file
 							with open(self.html_report, "w") as file:
 								file.writelines(data)
 							
-							self.read_geneworks()
+							# Call function to pull out patient demographics from LIMS
+							self.read_lims()
 			
-			# if proband not found call the function to retrieve next page of API
+		# if proband not found 
 		if not found:
-			# print "proband id " + str(self.proband_id) + " cannot be found"
-			self.next_page(json)
+			# print statement to say not found
+			print "Record not found in the "+str(self.count) + " GeL records parsed"
+			# assert that the number of GEL record parsed == the sample count provided in the JSON
+			assert self.count == json['count'], "self.count != gel's count"
 
-	def read_geneworks(self):
+	def read_lims(self):
 		'''This function must create a dictionary which is used to populate the html variables 
 		eg patient_info_dict={"NHS":NHS,"PRU":PRU,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender}'''
 		# get all of SelectRegister_GMCParticipants_RegisterEntryDetails 
@@ -217,20 +220,6 @@ class connect():
 		
 		#pass modified file to create a pdf.
 		self.create_pdf(self.pdf_report,patient_info_dict)								
-	
-	
-	def next_page(self,json):
-		'''Parse the json to find the next page'''
-		# assign the url for the next page to variable used to read API
-		self.interpretationlist=json['next']
-		#print self.interpretationlist
-		
-		# On the last page the link is 'null' so if this is the case stop
-		if self.interpretationlist:
-			self.read_API_page()
-		else:
-			print "Record not found in the "+str(self.count) + " GeL records parsed"
-			assert self.count == json['count'], "self.count != gel's count"
 		
 	
 	def replace_gel_address(self,html):
