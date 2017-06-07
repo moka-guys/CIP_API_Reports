@@ -104,9 +104,11 @@ class connect():
 			if sample["proband"]==self.proband_id:
 				# if sample is blocked ignore
 				if sample["last_status"]=="blocked":
-					print "last status = blocked for proband "+str(self.proband_id)
+					print "last status = blocked for proband "+str(self.proband_id)+"\nNo Report will be generated"
 					# probably want to raise an exception here
-					raise Exception("last status = blocked for proband "+str(self.proband_id))
+					#raise Exception("last status = blocked for proband "+str(self.proband_id))
+					#quit
+					quit()
 				else:
 					# set flag to stop the search
 					found=True
@@ -124,7 +126,7 @@ class connect():
 						if sample["interpreted_genomes"][j]["cip_version"]==max_cip_ver:
 							
 							# take the most recent report generated for this CIP API (take the last report from the list of reports)
-							print sample["interpreted_genomes"][j]["clinical_reports"][-1]['url']
+							#print sample["interpreted_genomes"][j]["clinical_reports"][-1]['url']
 							# if proxy is set in the config file
 							if proxy:
 								report=requests.get(sample["interpreted_genomes"][j]["clinical_reports"][-1]['url'],headers={"Authorization": "JWT " + self.token},proxies=proxy)# note space is required after JWT 
@@ -184,10 +186,13 @@ class connect():
 	def read_lims(self):
 		'''This function must create a dictionary which is used to populate the html variables 
 		eg patient_info_dict={"NHS":NHS,"PRU":PRU,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender}'''
+		
+		#######################don't include in shared script############################
 		# get all of SelectRegister_GMCParticipants_RegisterEntryDetails 
 		stored_proc_1="EXECUTE [GeneWorks].[dbo].[SelectRegister_GMCParticipants_RegisterEntryDetails]"
 		all_GMC_patients=self.fetchall(stored_proc_1)
 		
+		DOB=""
 		# filter using gelparticipantID
 		for record in all_GMC_patients:
 			if record[7]==self.proband_id:
@@ -195,32 +200,38 @@ class connect():
 				DOB=record[6]
 				FName=record[5]
 				LName=record[4]
-		
-		#convert DOB to required format
-		DOB=DOB.strftime('%d/%m/%Y')
+				
+		if DOB:
+			#convert DOB to required format
+			DOB=DOB.strftime('%d/%m/%Y')
 
-		# use the PRU to access spSelectPatientDetail to get NHS number
-		stored_proc_2="EXECUTE [GeneWorks].[dbo].[spSelectPatientDetail] @PatientID = \""+PRU+"\""
-		#print stored_proc_2
-		patient_info=self.fetchone(stored_proc_2)
-		
-		#print len(patient_info)
-		
-		NHS=patient_info[12]
-		Gender=patient_info[4]
-		
-		if Gender=="M":
-			Gender="Male"
-		elif Gender=="F":
-			Gender="Female"
+			# use the PRU to access spSelectPatientDetail to get NHS number
+			stored_proc_2="EXECUTE [GeneWorks].[dbo].[spSelectPatientDetail] @PatientID = \""+PRU+"\""
+			#print stored_proc_2
+			patient_info=self.fetchone(stored_proc_2)
+			
+			#print len(patient_info)
+			
+			NHS=patient_info[12]
+			Gender=patient_info[4]
+			
+			if Gender=="M":
+				Gender="Male"
+			elif Gender=="F":
+				Gender="Female"
+			else:
+				raise Error("The Gender in Geneworks is not 'M' or 'F'")
+			
+			patient_info_dict={"NHS":NHS,"PRU":PRU,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender}
+			
+			#pass modified file to create a pdf.
+			self.create_pdf(self.pdf_report,patient_info_dict)
+			
+			# print 
+			print "done\nReport can be found at "+self.pdf_report
 		else:
-			raise Error("The Gender in Geneworks is not 'M' or 'F'")
-		
-		patient_info_dict={"NHS":NHS,"PRU":PRU,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender}
-		
-		#pass modified file to create a pdf.
-		self.create_pdf(self.pdf_report,patient_info_dict)								
-		
+			print "No Patient information for that proband in geneworks\ncannot create report"
+			quit()
 	
 	def replace_gel_address(self,html):
 		'''This function loops through the report html object and replaces the GeL address with a rider to say this is an internal report based on the information from the GeL API
@@ -285,7 +296,7 @@ class connect():
 		# add the path to wkhtmltopdf to the pdfkit config settings
 		pdfkitconfig = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
 		# create options to use in the footer
-		options={'footer-right':'Page [page] of [toPage]','footer-left':'Date Created [isodate]'}
+		options={'footer-right':'Page [page] of [toPage]','footer-left':'Date Created [isodate]','quiet':""}
 		# use Jinja to populate the variables within the html template
 		# first tell the system where to find the html template (this is written by beautiful soup above)
 		env = Environment(loader=FileSystemLoader('/home/mokaguys/Documents/GeL_reports/html/'))
