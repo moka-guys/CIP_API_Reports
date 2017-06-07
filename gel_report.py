@@ -223,7 +223,9 @@ class connect():
 		
 	
 	def replace_gel_address(self,html):
-		'''This function loops through the report html object and replaces the GeL address with a rider to say this is an internal report based on the information from the GeL API'''
+		'''This function loops through the report html object and replaces the GeL address with a rider to say this is an internal report based on the information from the GeL API
+		NB The use case has changed and a new rider is not included but functionality remains in case it is required.
+		'''
 		# notes is a list of all the p tags where the class == note
 		notes=html.find_all("p", class_="note")
 		# loop through each p tag and look for the containing the gel address (as defined in the init function)
@@ -237,8 +239,8 @@ class connect():
 				# create a new break tag
 				br=html.new_tag('br')
 				# add the break tag to the end of the text string twice
-				new_rpt_header.insert(len(new_rpt_header),br)
-				new_rpt_header.insert(len(new_rpt_header),br)
+				#new_rpt_header.insert(len(new_rpt_header),br)
+				#new_rpt_header.insert(len(new_rpt_header),br)
 				# insert the new tag into the html
 				notes[note].insert_before(new_rpt_header)
 				# remove the gel address tag
