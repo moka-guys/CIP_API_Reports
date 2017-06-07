@@ -13,7 +13,7 @@ The script authentication.py creates an JSON web token (JWT) using the username 
 
 Each file should just contain a single line containing only the username or password. Example files are provided (dummy_auth_pw.txt and dummy_auth_username.txt).
 #### Reading the API
-Using the Python requests module and this access token the CIP-API is accessed. Only 100 samples are returned per page so if the GEL participant ID is not found the next page is accessed.
+Using the Python requests module and the access token generated above the CIP-API is read, returning all patients that your token allows you to access.
 #### Selecting which report to return
 Once the Participant ID is found a few checks are performed to ensure the correct report is found.
 1. **If the patient status is blocked no report will be returned**
