@@ -11,36 +11,41 @@ As described below the following files and settings are required:
 #### Authentication
 The script authentication.py creates an JSON web token (JWT) using the username and passwords provided in the files auth_pw.txt and auth_username.txt.
 
-Each file should just contain a single line containing only the username or password. Example files are provided (dummy_auth_pw.txt and dummy_auth_username.txt).
+Each file should just contain a single line containing only the username or password.
 #### Reading the API
 Using the Python requests module and the access token generated above the CIP-API is read, returning all patients that your token allows you to access.
 #### Selecting which report to return
 Once the Participant ID is found a few checks are performed to ensure the correct report is found.
 1. **If the patient status is blocked no report will be returned**
 2. Reports can be generated from multiple versions of the CIP version. **The report from the most recent version CIP version is taken**
-3. There can also be multiple reports generated for each verison of the CIP. **The most recent report is taken.**
+3. There can also be multiple reports generated for each version of the CIP. **The most recent report is taken.**
 #### Modification of the report
-Where possible the Python module Beautiful soup is used to modify the html. The CSS is modified a bit more crudely, by reading the file, identifying the required section of the report and replacing the text.
+Where possible the Python module Beautiful soup is used to modify the html as an python object. The CSS cannot be modified in this way so is modified a bit more crudely, by parsing the html file, identifying the required section of the report and replacing the text.
 
-The report is edited to remove the GEL logo and the GEL Address from near the top of the report. This is replaced by a logo of your chosing (stated in the config file)
+The report is edited to remove the small grey banner containing the date report generated and the GEL participant ID.
+
+The large green banner from the top of the report (containing the GEL logo and banner) is also removed, replaced with a space for the referring clinician information (using the referring_clinic_table_template), a new report title and the labs logo (both defined in the config file).
+The GeL address and is also removed top of the report.
 
 The coverage section is then modified so it is always expanded (removing the click to expand option)
 
-The colour of the report header is modified by altering the CSS (the new colour can be specified in the config file)
-
 A new table is also inserted above the participant information table to be populated with additional patient information. This uses the template found in the patient_info_table_template.html.
+
+A page break is also added before the reference databases and software versions to prevent page breaks mid table.
+
+
 #### Adding patient information from local LIMS system
 This table is then populated by a function which queries the LIMS system. This will need to be adapted by each lab locally.
 
-pyODBC can be used to connect and query SQL databases.
+pyODBC can be used to connect and query SQL databases. functions which query the database and returns the result have been included in the script (with usage instrutions).
 
-The database connection details are stored seperately and imported to the script to enable the script to be stored publically in github. 
+The database connection details are stored separately and imported to the script to enable the script to be stored openly in github. 
 
-An example database connection string (that works with pyODBC) can be found in the file dummy_database_connection_config.py. 
+An example database connection string (that works with pyODBC) can be found in the file database_connection_config.py. 
 
-This function must essentially populate a dictionary containing one entry for each item in the patient_info_table_template.html eg patient_info_dict={"NHS":NHS,"PRU":PRU,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender}
+This function must essentially populate a dictionary containing one entry for each item in the patient_info_table_template.html eg patient_info_dict={"NHS":NHS,"PRU":PRU,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician":clinician,"clinician_add":clinic_address,"report_title":report_title}
 
-This template (and dictionary) can be modified as required.
+These templates (and dictionary) can be modified as required.
 #### Output
 A pdf and the intermediary html files are produced in the locations specified in the config file.
 

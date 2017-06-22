@@ -434,7 +434,7 @@ class connect():
 		options={'footer-right':'Page [page] of [toPage]','footer-left':'Date Created [isodate]','quiet':""}
 		# use Jinja to populate the variables within the html template
 		# first tell the system where to find the html template (this is written by beautiful soup above)
-		env = Environment(loader=FileSystemLoader('/home/mokaguys/Documents/GeL_reports/html/'))
+		env = Environment(loader=FileSystemLoader(html_reports))
 		template = env.get_template(self.proband_id+".html")
 		# create the pdf using template.render to populate variables from dictionary created in read_geneworks
 		pdfkit.from_string(template.render(patient_info), pdfreport_path, options=options, configuration=pdfkitconfig)
