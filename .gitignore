@@ -1,0 +1,6 @@
+auth_pw.txt
+auth_username.txt
+test.py
+database_connection_config.py
+*.pyc
+dummy*
