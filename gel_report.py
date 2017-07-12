@@ -7,7 +7,6 @@ This report is then modified to make it clear that this report has not been issu
 Hopefully this solves a problem faced by many labs and prevents too much duplication of work!
 Created 02/06/2017 by Aled Jones
 '''
-#from HTMLParser import HTMLParser
 import requests
 from bs4 import BeautifulSoup
 import pdfkit
@@ -72,11 +71,13 @@ class connect():
 		self.replace_with_proband_id="Link to clinical summary"
 		self.proband_id_string="GeL Proband ID"
 		
-		# a flag to determine if the 
+		# a flag to determine if the header is required to be changed to look like a report from the lab (as opposed to keeping the Gel geader to make it clear it's a GEL report).
 		self.remove_headers=""
 	
 	def take_inputs(self, argv):	
 		'''Capture the gel participant ID from the command line'''
+		#print argv
+		#time.sleep(10)
 		# define expected inputs
 		try:
 			opts, args = getopt.getopt(argv, "g:h:",['gelid','removeheader'])
@@ -100,6 +101,7 @@ class connect():
 			self.html_report=html_reports+self.proband_id+".html"
 			self.pdf_report=pdf_dir+self.proband_id+".pdf"
 			
+			#print "about to read API"
 			# Call the function to read the API
 			self.read_API_page()
 	
@@ -111,15 +113,18 @@ class connect():
 			response = requests.get(self.interpretationlist, headers={"Authorization": "JWT " + self.token},proxies=proxy) # note space is required after JWT 
 		else:
 			response = requests.get(self.interpretationlist, headers={"Authorization": "JWT " + self.token}) # note space is required after JWT 
+		#print "have read the API"
 		# pass this in the json format to the parse_json function
 		self.parse_json(response.json())
 		
 			
 	def parse_json(self,json):
 		'''This function takes the json file containing all cases. This is parsed to look for the desired proband id'''
+		#print "parsing json"
 		# Flag to stop the search
 		found=False
 		#print json
+		
 		# loop through the results
 		for sample in json['results']:
 			# increase the count of patients searched
@@ -129,14 +134,17 @@ class connect():
 				# if sample is blocked ignore
 				if sample["last_status"]=="blocked":
 					print "last status = blocked for proband "+str(self.proband_id)+"\nNo Report will be generated"
-					# probably want to raise an exception here
+					
+					# may want to raise an exception here - however this includes a traceback which I don't want
 					#raise Exception("last status = blocked for proband "+str(self.proband_id))
+					
 					#quit
 					quit()
 				else:
 					# set flag to stop the search
 					found=True
-										
+					
+					#print "found patient"
 					# create a variable to hold the various cip versions
 					max_cip_ver=0
 
@@ -208,6 +216,7 @@ class connect():
 			if json['next']:
 				# update the self.interpretationlist with url for next page
 				self.interpretationlist=json['next']
+				#print "reading next page"
 				# Call the function to read the API
 				self.read_API_page()
 			else:
@@ -305,7 +314,7 @@ class connect():
 		
 	def read_lims(self):
 		'''This function must create a dictionary which is used to populate the html variables 
-		eg patient_info_dict={"NHS":NHS,"PRU":PRU,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician":clinician,"clinician_add":clinic_address,"report_title":report_title}
+		eg patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician":clinician,"clinician_add":clinic_address,"report_title":report_title}
 		NB report_title is from the config file'''
 		
 		#######################don't include in shared script############################
@@ -317,7 +326,7 @@ class connect():
 		# filter using gelparticipantID
 		for record in all_GMC_patients:
 			if record[7]==self.proband_id:
-				PRU=record[2]
+				InternalPatientID=record[2]
 				DOB=record[6]
 				FName=record[5]
 				LName=record[4]
@@ -342,14 +351,14 @@ class connect():
 			else:
 				raise Error("The Gender in Geneworks is not 'M' or 'F'")
 			
-			clinician="Dr Jones"
-			clinic_address="The Moon"
+			clinician=""
+			clinic_address=""
 			
-			patient_info_dict={"NHS":NHS,"PRU":PRU,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician":clinician,"clinician_add":clinic_address,"report_title":report_title}
+			patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician":clinician,"clinician_add":clinic_address,"report_title":report_title}
 			
 			return (patient_info_dict)
 		else:
-			print "No Patient information for that proband in geneworks\ncannot create report"
+			print "NO REPORT GENERATED - No Patient information for that proband in geneworks"
 			quit()
 	
 	def check_for_errors(self,html):
