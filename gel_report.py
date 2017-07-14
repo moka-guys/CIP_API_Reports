@@ -286,6 +286,7 @@ class connect():
 							# add this file to the list
 							for line in template.readlines():
 								template_to_write.append(line)
+						# add the new html code back to the list
 						data[i]="".join(template_to_write)
 				
 				# otherwise add in clinician info for less heavily modified reports
@@ -296,8 +297,6 @@ class connect():
 					if self.gel_logo_code in line:
 						#empty list
 						template_to_write=[]
-						#add new div
-						#template_to_write.append("<div>")
 						# add line which is going to be replaced
 						template_to_write.append(self.gel_logo_code)
 						
@@ -306,6 +305,7 @@ class connect():
 							# add this file to the list
 							for line in template.readlines():
 								template_to_write.append(line)
+						# add the new html code back to the list
 						data[i]="".join(template_to_write)
 											
 			#write the modified list back to a file
@@ -335,8 +335,8 @@ class connect():
 			#convert DOB to required format
 			DOB=DOB.strftime('%d/%m/%Y')
 
-			# use the PRU to access spSelectPatientDetail to get NHS number
-			stored_proc_2="EXECUTE [GeneWorks].[dbo].[spSelectPatientDetail] @PatientID = \""+PRU+"\""
+			# use the InternalPatientID to access spSelectPatientDetail to get NHS number
+			stored_proc_2="EXECUTE [GeneWorks].[dbo].[spSelectPatientDetail] @PatientID = \""+InternalPatientID+"\""
 			
 			patient_info=self.fetchone(stored_proc_2)
 			#print patient_info
