@@ -4,5 +4,5 @@ bash_script_path="/home/mokaguys/Documents/GeL_reports/170713.sh"
 bash_script=open(bash_script_path,'w')
 bash_script.write("source activate pyODBC\n")
 for ID in list_of_GELIDS:
-	bash_script.write("python ~/Apps/CIP_API/gel_report.py -g %s -h False\n" % ID)
+	bash_script.write("python /home/mokaguys/Documents/CIP_API_development/gel_report.py -g %s -h False\n" % ID)
 bash_script.close()

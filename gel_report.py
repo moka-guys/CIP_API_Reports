@@ -358,7 +358,7 @@ class connect():
 			
 			return (patient_info_dict)
 		else:
-			print "NO REPORT GENERATED - No Patient information for that proband in geneworks"
+			print ("NO REPORT GENERATED - No Patient information for proband %s in geneworks" % self.proband_id)
 			quit()
 	
 	def check_for_errors(self,html):
@@ -369,7 +369,7 @@ class connect():
 			if div:
 				# capture and print the error message
 				for message in div.find_all('p'):
-					print warning_message + message.get_text()
+					print (warning_message % self.proband_id) + message.get_text()
 				
 				#if required stop the report being generated
 				#quit()
