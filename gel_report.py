@@ -336,7 +336,7 @@ class connect():
 			DOB=DOB.strftime('%d/%m/%Y')
 
 			# use the PRU to access spSelectPatientDetail to get NHS number
-			stored_proc_2="EXECUTE [GeneWorks].[dbo].[spSelectPatientDetail] @PatientID = \""+PRU+"\""
+			stored_proc_2="EXECUTE [GeneWorks].[dbo].[spSelectPatientDetail] @PatientID = \""+InternalPatientID+"\""
 			
 			patient_info=self.fetchone(stored_proc_2)
 			#print patient_info
