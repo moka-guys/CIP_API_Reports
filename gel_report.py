@@ -200,12 +200,12 @@ class connect():
 							with open(self.html_report, "w") as file:
 								file.write(str(soup))
 
-							#Can't change CSS or insert tables using beautiful soup so need to read and replace html file
-							self.edit_CSS()
-							
 							## Call function to pull out patient demographics from LIMS. capture dict
 							patient_info_dict=self.read_lims()
 							
+							#Can't change CSS or insert tables using beautiful soup so need to read and replace html file
+							self.edit_CSS(patient_info_dict)
+													
 							#pass modified file to create a pdf.
 							self.create_pdf(self.pdf_report,patient_info_dict)
 							
@@ -225,7 +225,7 @@ class connect():
 				# assert that the number of GEL record parsed == the sample count provided in the JSON
 				assert self.count == json['count'], "self.count != gel's count"
 		
-	def edit_CSS(self):
+	def edit_CSS(self,patient_info_dict):
 		'''Can't change CSS or insert tables using beautiful soup so need to read and replace html file.
 		This function reads that file, loops through it and 
 		1 - Adds in a table containing patient information extracted from LIMS
@@ -285,7 +285,15 @@ class connect():
 						with open(new_clinician_table,"r") as template:
 							# add this file to the list
 							for line in template.readlines():
-								template_to_write.append(line)
+								print patient_info_dict['clinician1']									
+								if line.startswith("<p>cc.{{copies}}</p>"):
+									if patient_info_dict['copies']=="":
+										pass
+									else:
+										template_to_write.append(line)
+								else:
+									template_to_write.append(line)
+								
 						# add the new html code back to the list
 						data[i]="".join(template_to_write)
 				
@@ -304,7 +312,15 @@ class connect():
 						with open(new_clinician_table,"r") as template:
 							# add this file to the list
 							for line in template.readlines():
-								template_to_write.append(line)
+								print patient_info_dict['clinician1']									
+								if line.startswith("<p>cc.{{copies}}</p>"):
+									if patient_info_dict['copies']=="":
+										pass
+									else:
+										template_to_write.append(line)
+								else:
+									template_to_write.append(line)
+										
 						# add the new html code back to the list
 						data[i]="".join(template_to_write)
 											
@@ -314,52 +330,87 @@ class connect():
 		
 	def read_lims(self):
 		'''This function must create a dictionary which is used to populate the html variables 
-		eg patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician":clinician,"clinician_add":clinic_address,"report_title":report_title}
+		eg patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician1":clinician1,"clinician1_add":clinician1_address,"copies":copies,"report_title":report_title}
 		NB report_title is from the config file'''
 		
-		#######################don't include in shared script############################
-		# get all of SelectRegister_GMCParticipants_RegisterEntryDetails 
-		stored_proc_1="EXECUTE [GeneWorks].[dbo].[SelectRegister_GMCParticipants_RegisterEntryDetails]"
-		all_GMC_patients=self.fetchall(stored_proc_1)
-		
-		DOB=""
-		# filter using gelparticipantID
-		for record in all_GMC_patients:
-			if record[7]==self.proband_id:
-				InternalPatientID=record[2]
-				DOB=record[6]
-				FName=record[5]
-				LName=record[4]
-				
-		if DOB:
-			#convert DOB to required format
-			DOB=DOB.strftime('%d/%m/%Y')
-
-			# use the InternalPatientID to access spSelectPatientDetail to get NHS number
-			stored_proc_2="EXECUTE [GeneWorks].[dbo].[spSelectPatientDetail] @PatientID = \""+InternalPatientID+"\""
-			
-			patient_info=self.fetchone(stored_proc_2)
-			#print patient_info
-			
-			NHS=patient_info[12]
-			Gender=patient_info[4]
-			
-			if Gender=="M":
-				Gender="Male"
-			elif Gender=="F":
-				Gender="Female"
+		if self.proband_id.startswith("5"):
+			found=False
+			with open("/home/mokaguys/Apps/CIP_API/GEL_pilot_information.txt","r") as patient_info:
+				for number,line in enumerate(patient_info):
+					#skip header
+					if number > 0: 
+						splitline=line.split("\t")
+						
+						if self.proband_id == splitline[0]:
+							print splitline
+							NHS=splitline[7]
+							InternalPatientID=splitline[5]
+							DOB=splitline[3]
+							FName=splitline[1].title()
+							LName=splitline[2].title()
+							Gender=splitline[4]
+							clinician1=splitline[10]
+							clinician1_address=splitline[12]
+							clinician2=splitline[11]
+							clinician2_address=splitline[13]
+							copies=""
+							if len(clinician2) >1:
+								copies=clinician2+", "+clinician2_address
+							#save to dict
+							patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician1":clinician1,"clinician1_add":clinician1_address,"copies":copies,"report_title":report_title}
+							found=True
+							
+					else:
+						pass
+			if found:
+				return (patient_info_dict)
 			else:
-				raise Error("The Gender in Geneworks is not 'M' or 'F'")
-			
-			clinician=""
-			clinic_address=""
-			
-			patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician":clinician,"clinician_add":clinic_address,"report_title":report_title}
-			
-			return (patient_info_dict)
+				print ("NO REPORT GENERATED - No Patient information for proband %s in spreadsheet" % self.proband_id)
+				quit()
 		else:
-			print ("NO REPORT GENERATED - No Patient information for proband %s in geneworks" % self.proband_id)
-			quit()
+			#######################don't include in shared script############################
+			# get all of SelectRegister_GMCParticipants_RegisterEntryDetails 
+			stored_proc_1="EXECUTE [GeneWorks].[dbo].[SelectRegister_GMCParticipants_RegisterEntryDetails]"
+			all_GMC_patients=self.fetchall(stored_proc_1)
+			
+			DOB=""
+			# filter using gelparticipantID
+			for record in all_GMC_patients:
+				if record[7]==self.proband_id:
+					InternalPatientID=record[2]
+					DOB=record[6]
+					FName=record[5]
+					LName=record[4]
+					
+			if DOB:
+				#convert DOB to required format
+				DOB=DOB.strftime('%d/%m/%Y')
+
+				# use the InternalPatientID to access spSelectPatientDetail to get NHS number
+				stored_proc_2="EXECUTE [GeneWorks].[dbo].[spSelectPatientDetail] @PatientID = \""+InternalPatientID+"\""
+				
+				patient_info=self.fetchone(stored_proc_2)
+				#print patient_info
+				
+				NHS=patient_info[12]
+				Gender=patient_info[4]
+				
+				if Gender=="M":
+					Gender="Male"
+				elif Gender=="F":
+					Gender="Female"
+				else:
+					raise Error("The Gender in Geneworks is not 'M' or 'F'")
+			
+				clinician1=""
+				clinician1_address=""
+				
+				patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician1":clinician1,"clinician1_add":clinician1_address,"copies":copies,"report_title":report_title}
+				
+				return (patient_info_dict)
+			else:
+				print ("NO REPORT GENERATED - No Patient information for proband %s in geneworks" % self.proband_id)
+				quit()
 	
 	def check_for_errors(self,html):
 		'''issue warning (or abort) if any errors are found when reporting eg can't find coverage report etc. Uses a warning message from config file'''
@@ -505,6 +556,7 @@ class connect():
 		pdfkitconfig = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
 		# create options to use in the footer
 		options={'footer-right':'Page [page] of [toPage]','footer-left':'Date Created [isodate]','quiet':""}
+				
 		# use Jinja to populate the variables within the html template
 		# first tell the system where to find the html template (this is written by beautiful soup above)
 		env = Environment(loader=FileSystemLoader(html_reports))
