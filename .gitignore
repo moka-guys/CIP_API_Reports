@@ -4,4 +4,4 @@ test.py
 database_connection_config.py
 *.pyc
 dummy*
-GEL_pilot_information.txt
+GEL_pilot_patient_referral_information.txt

@@ -285,7 +285,7 @@ class connect():
 						with open(new_clinician_table,"r") as template:
 							# add this file to the list
 							for line in template.readlines():
-								print patient_info_dict['clinician1']									
+								#print patient_info_dict['clinician1']									
 								if line.startswith("<p>cc.{{copies}}</p>"):
 									if patient_info_dict['copies']=="":
 										pass
@@ -312,7 +312,7 @@ class connect():
 						with open(new_clinician_table,"r") as template:
 							# add this file to the list
 							for line in template.readlines():
-								print patient_info_dict['clinician1']									
+								#print patient_info_dict['clinician1']									
 								if line.startswith("<p>cc.{{copies}}</p>"):
 									if patient_info_dict['copies']=="":
 										pass
@@ -335,24 +335,24 @@ class connect():
 		
 		if self.proband_id.startswith("5"):
 			found=False
-			with open("/home/mokaguys/Apps/CIP_API/GEL_pilot_information.txt","r") as patient_info:
+			with open(pilot_patient_info,"r") as patient_info:
 				for number,line in enumerate(patient_info):
 					#skip header
 					if number > 0: 
 						splitline=line.split("\t")
 						
 						if self.proband_id == splitline[0]:
-							print splitline
+							#print splitline
 							NHS=splitline[7]
 							InternalPatientID=splitline[5]
 							DOB=splitline[3]
 							FName=splitline[1].title()
 							LName=splitline[2].title()
 							Gender=splitline[4]
-							clinician1=splitline[10]
-							clinician1_address=splitline[12]
-							clinician2=splitline[11]
-							clinician2_address=splitline[13]
+							clinician1=splitline[8]
+							clinician1_address=splitline[9]
+							clinician2=splitline[10]
+							clinician2_address=splitline[11]
 							copies=""
 							if len(clinician2) >1:
 								copies=clinician2+", "+clinician2_address
