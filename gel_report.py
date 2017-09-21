@@ -334,7 +334,7 @@ class connect():
 		NB report_title is from the config file'''
 		
 		#look for the pilot cases (starting with 5000)
-		if int(self.proband_id) > 49999999:
+		if int(self.proband_id) > 49999999 and int(self.proband_id) < 59999999:
 			# set flag to stop looking through text file once found the patient
 			found=False
 			# Open the tab delimted text file
