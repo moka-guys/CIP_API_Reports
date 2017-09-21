@@ -330,43 +330,58 @@ class connect():
 		
 	def read_lims(self):
 		'''This function must create a dictionary which is used to populate the html variables 
-		eg patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician1":clinician1,"clinician1_add":clinician1_address,"copies":copies,"report_title":report_title}
+		eg patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"Sex":Sex,"clinician1":clinician1,"clinician1_add":clinician1_address,"copies":copies,"report_title":report_title}
 		NB report_title is from the config file'''
 		
+		#look for the pilot cases (starting with 5000)
 		if self.proband_id.startswith("5"):
+			# set flag to stop looking through text file once found the patient
 			found=False
+			# Open the tab delimted text file
 			with open(pilot_patient_info,"r") as patient_info:
 				for number,line in enumerate(patient_info):
 					#skip header
 					if number > 0: 
+						# split the line on tabs
 						splitline=line.split("\t")
-						
+						# if the line contains our patient
 						if self.proband_id == splitline[0]:
+							#assign the variables
 							#print splitline
 							NHS=splitline[7]
 							InternalPatientID=splitline[5]
 							DOB=splitline[3]
 							FName=splitline[1].title()
 							LName=splitline[2].title()
-							Gender=splitline[4]
+							Sex=splitline[4]
 							clinician1=splitline[8]
 							clinician1_address=splitline[9]
 							clinician2=splitline[10]
 							clinician2_address=splitline[11]
+							# set empty variable to create the address for the copies line
 							copies=""
+							#if there is a copy required
 							if len(clinician2) >1:
+								# combine
 								copies=clinician2+", "+clinician2_address
+							
 							#save to dict
-							patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician1":clinician1,"clinician1_add":clinician1_address,"copies":copies,"report_title":report_title}
+							patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"Sex":Sex,"clinician1":clinician1,"clinician1_add":clinician1_address,"copies":copies,"report_title":report_title}
+							# set flag to say patient has been found
 							found=True
 							
 					else:
+						# if this line isn't our patient move to next line
 						pass
 			if found:
+				# return patient info dictionary
 				return (patient_info_dict)
 			else:
+				#warn that patient hasn't been found and stop
 				print ("NO REPORT GENERATED - No Patient information for proband %s in spreadsheet" % self.proband_id)
 				quit()
+		
+		# for non pilot patients...
 		else:
 			#######################don't include in shared script############################
 			# get all of SelectRegister_GMCParticipants_RegisterEntryDetails 
@@ -393,19 +408,19 @@ class connect():
 				#print patient_info
 				
 				NHS=patient_info[12]
-				Gender=patient_info[4]
+				Sex=patient_info[4]
 				
-				if Gender=="M":
-					Gender="Male"
-				elif Gender=="F":
-					Gender="Female"
+				if Sex=="M":
+					Sex="Male"
+				elif Sex=="F":
+					Sex="Female"
 				else:
-					raise Error("The Gender in Geneworks is not 'M' or 'F'")
+					raise Error("The Sex in Geneworks is not 'M' or 'F'")
 			
 				clinician1=""
 				clinician1_address=""
 				
-				patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"gender":Gender,"clinician1":clinician1,"clinician1_add":clinician1_address,"copies":copies,"report_title":report_title}
+				patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"Sex":Sex,"clinician1":clinician1,"clinician1_add":clinician1_address,"copies":copies,"report_title":report_title}
 				
 				return (patient_info_dict)
 			else:
