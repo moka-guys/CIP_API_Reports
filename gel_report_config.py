@@ -24,6 +24,10 @@ report_title = "100,000 Genomes Project Rare Disease Primary Findings"
 # warning message if there is an error reported when generating the report
 warning_message = "Warning! Error making the report for GEL ID %s.\nIf issue continues for this sample contact GEL Helpdesk @ ssd.servicedesk@nhs.net. \n Error message = "
 
+########################### referral information ##########################
+# file containing pilot_patient_referral information
+pilot_patient_info = "/home/mokaguys/Apps/CIP_API/GEL_pilot_patient_referral_information.txt"
+
 ########################### pdfkit ##########################
 # path to the wkhtmltopdf executable
 wkhtmltopdf_path = "/home/mokaguys/Apps/wkhtmltox/bin/wkhtmltopdf"
