@@ -257,9 +257,7 @@ class connect():
 		for reports that are being modified to look like they are not from gel:
 			2 - edits the CSS which defines the banner colour so it is transparent
 			3 - Adds the date report generated to the table (was previously in the grey header)
-			4 - Adds in table with clinician referral information
-			5 - Add in variant table(s)
-			
+			4 - Adds in table with clinician referral information			
 		'''
 		# read file into object (a list) 
 		with open(self.html_report, "r") as file:
@@ -409,7 +407,7 @@ class connect():
 		#send url to function to retrieve the json
 		interpretation_request=self.read_API_page()
 		
-		#check which cip have returned the data ()
+		#check which cip was used. Each cip returns data in a different format so a different module is required.
 		if interpretation_request['cip']=="omicia":
 			self.read_omicia_data(interpretation_request)
 		elif interpretation_request['cip']=="congenica":
