@@ -80,7 +80,6 @@ class connect():
 		
 		#lists to hold variants from the interpretation_request
 		self.tiered_variants=[]
-		self.list_of_CIP_candidate_variants=[]
 		
 		# create a variable to hold the various cip versions
 		self.max_cip_ver=0
@@ -228,8 +227,10 @@ class connect():
 							#pass modified file to create a pdf.
 							self.create_pdf(self.htmlfilename,self.pdf_report,patient_info_dict)
 
+							print "length tiered_variants = "+str(len(self.tiered_variants))
 							#check if a variant report is required
-							if len(self.list_of_CIP_candidate_variants)>0 or len(self.tiered_variants)>0:
+							if len(self.tiered_variants)>0:
+								
 								#create variant report if required
 								self.create_variant_report(patient_info_dict)
 
@@ -414,6 +415,7 @@ class connect():
 			print "Each CIP returns the data in a different format. So far only the Omicia CIP can be read. Feel free to make a module for congenica!"
 		else:
 			print "Each CIP returns the data in a different format. So far only the Omicia CIP can be read. Feel free to make a module for your CIP!"
+
 			
 	def read_omicia_data(self,interpretation_request):
 		'''reads the omicia data format'''					
@@ -422,83 +424,78 @@ class connect():
 		for interpreted_genome in interpretation_request['interpreted_genome']:
 			# if it's the highest cip version
 			if interpreted_genome['cip_version'] == self.max_cip_ver:
-				# see if there is anything to report
-				if len(interpreted_genome['interpreted_genome_data']['reportedVariants'])>0:
-					# if there is stop
-					print "Variants in to be reported section. Will not create the variant appendix"
-				# if it's a negative report make the appendix
-				else:
-					# see if there are any tiered variants (these are in a list)
-					if len(interpretation_request['interpretation_request_data']['json_request']['TieredVariants']) > 0:
-						# for each variant
-						for variant in interpretation_request['interpretation_request_data']['json_request']['TieredVariants']:
-							# there can be a list of classifications for a variant eg if the gene is in multiple panels. loop through these incase one panel has a different tier to the others
-							for i in range(len(variant['reportEvents'])):
-								#capture the tier of the variant is (ignore tier3)
-								tier=variant['reportEvents'][i]['tier']
-								if tier in ["TIER1","TIER2"]:
-									#capture the required information
-									reference=variant['reference']
-									alternate=variant['alternate']
-									position=str(variant['position'])
-									chromosome=variant['chromosome']				
-									gene_symbol=variant['reportEvents'][i]['genomicFeature']['ids']['HGNC']
-									ensemblid=variant['reportEvents'][i]['genomicFeature']['ensemblId']
-									# build the variant description
-									variant_description= "chr"+chromosome+":"+position+reference+">"+alternate
+				# see if there are any tiered variants (these are in a list)
+				if len(interpretation_request['interpretation_request_data']['json_request']['TieredVariants']) > 0:
+					# for each variant
+					for variant in interpretation_request['interpretation_request_data']['json_request']['TieredVariants']:
+						# there can be a list of classifications for a variant eg if the gene is in multiple panels. loop through these incase one panel has a different tier to the others
+						for i in range(len(variant['reportEvents'])):
+							#capture the tier of the variant is (ignore tier3)
+							tier=variant['reportEvents'][i]['tier']
+							if tier in ["TIER1","TIER2"]:
+								#capture the required information
+								reference=variant['reference']
+								alternate=variant['alternate']
+								position=str(variant['position'])
+								chromosome=variant['chromosome']				
+								gene_symbol=variant['reportEvents'][i]['genomicFeature']['ids']['HGNC']
+								ensemblid=variant['reportEvents'][i]['genomicFeature']['ensemblId']
+								# build the variant description
+								variant_description= "chr"+chromosome+":"+position+reference+">"+alternate
+								if len(ensemblid) > 2:
+									gene_and_id=gene_symbol+"("+ensemblid+")"
+								else:
+									gene_and_id=gene_symbol
+								#add to a list as a tuple
+								self.tiered_variants.append((variant_description,gene_and_id))
+							
+				
+				##### next need to find the CIP candidate variants
+				# loop through again, looking for the highest CIP version
+				for interpreted_genome in interpretation_request['interpreted_genome']:
+					if interpreted_genome['cip_version'] == self.max_cip_ver:
+						# this is a list. capture this list in a variable
+						CIP_candidate_variants=interpreted_genome['interpreted_genome_data']['reportedVariants']
+				
+				# if it's not an empty listloop through this list of variants 
+				if len(CIP_candidate_variants)>0:
+					for variant in CIP_candidate_variants:
+						# within each variant there is a list of report events. loop through this list
+						for reportevent in range(len(variant['reportEvents'])):
+							# capture the tier
+							tier=variant['reportEvents'][reportevent]['tier']
+							#if tier 1 or 2 (ignoring tier3)
+							if tier in ["TIER1","TIER2"]:
+								#capture the descriptions
+								reference=variant['reference']
+								alternate=variant['alternate']
+								position=str(variant['position'])
+								chromosome=variant['chromosome']
+								# the gene symbol can be in multiple places so look in both places
+								if 'HGNC' in variant['reportEvents'][reportevent]['genomicFeature']:
+									gene_symbol=variant['reportEvents'][reportevent]['genomicFeature']['HGNC']
+									ensemblid=variant['reportEvents'][reportevent]['genomicFeature']['ensemblId']
+								elif 'HGNC' in variant['reportEvents'][reportevent]['genomicFeature']['ids']:
+									gene_symbol=variant['reportEvents'][reportevent]['genomicFeature']['ids']['HGNC']
+									ensemblid=variant['reportEvents'][reportevent]['genomicFeature']['ensemblId']
+								else:
+									print "can't find gene id. see url = " + self.interpretationlist
+									stop()
+								# set the variant description
+								variant_description= "chr"+chromosome+":"+position+reference+">"+alternate
+								
+								#check if the candidate variant is the same as one in the gel tiered variants (this only matches on the variant_description)
+								if any(variant_description not in variants for variants in self.tiered_variants):
+									#check ensembl id is not blank
 									if len(ensemblid) > 2:
 										gene_and_id=gene_symbol+"("+ensemblid+")"
 									else:
+										# if it is blank do not add it	
 										gene_and_id=gene_symbol
+									
 									#add to a list as a tuple
 									self.tiered_variants.append((variant_description,gene_and_id))
-								
-					
-					# next need to find the CIP candidate variants
-										
-					# Then loop through again, looking for the highest CIP version
-					for interpreted_genome in interpretation_request['interpreted_genome']:
-						if interpreted_genome['cip_version'] == self.max_cip_ver:
-							# this is a list. capture this list in a variable
-							CIP_candidate_variants=interpreted_genome['interpreted_genome_data']['reportedVariants']
-					
-					# if it's not an empty listloop through this list of variants 
-					if len(CIP_candidate_variants)>0:
-						for variant in CIP_candidate_variants:
-							# within each variant there is a list of report events. loop through this list
-							for reportevent in range(len(variant['reportEvents'])):
-								# capture the tier
-								tier=variant['reportEvents'][reportevent]['tier']
-								#if tier 1 or 2 (ignoring tier3)
-								if tier in ["TIER1","TIER2"]:
-									#capture the descriptions
-									reference=variant['reference']
-									alternate=variant['alternate']
-									position=str(variant['position'])
-									chromosome=variant['chromosome']
-									# the gene symbol can be in multiple places so look in both places
-									if 'HGNC' in variant['reportEvents'][reportevent]['genomicFeature']:
-										gene_symbol=variant['reportEvents'][reportevent]['genomicFeature']['HGNC']
-										ensemblid=variant['reportEvents'][reportevent]['genomicFeature']['ensemblId']
-									elif 'HGNC' in variant['reportEvents'][reportevent]['genomicFeature']['ids']:
-										gene_symbol=variant['reportEvents'][reportevent]['genomicFeature']['ids']['HGNC']
-										ensemblid=variant['reportEvents'][reportevent]['genomicFeature']['ensemblId']
-									else:
-										print "can't find gene id. see url = " + self.interpretationlist
-										stop()
-									# set the variant description
-									variant_description= "chr"+chromosome+":"+position+reference+">"+alternate
-									#check if the candidate variant is the same as one in the gel tiered variants (this only matches on the variant_description)
-									if any(variant_description not in variants for variants in self.tiered_variants):
-										#check ensembl id is not blank
-										if len(ensemblid) > 2:
-											gene_and_id=gene_symbol+"("+ensemblid+")"
-										else:
-											# if it is blank do not add it	
-											gene_and_id=gene_symbol
-										
-										#add to a list as a tuple
-										self.tiered_variants.append((variant_description,gene_and_id))
+						
 							
 		
 	def make_variant_table(self,data):
