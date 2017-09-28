@@ -1,5 +1,6 @@
 ####################### Where the App lives##############
-app_home="/home/mokaguys/Apps/CIP_API/" # note trailing slash!!
+#app_home="/home/mokaguys/Apps/CIP_API/" # note trailing slash!!
+app_home="/home/mokaguys/Documents/CIP_API_development/"#development
 
 ####################### Authentication ##################
 # path to files containing
@@ -20,6 +21,9 @@ new_logo = app_home + "images/viapathlogo_white.png"
 
 #report title
 report_title = "100,000 Genomes Project Rare Disease Primary Findings"
+
+#variant_list_title
+variant_list_title = "Appendix: Non-threatening variant list"
 
 # warning message if there is an error reported when generating the report
 warning_message = "Warning! Error making the report for GEL ID %s.\nIf issue continues for this sample contact GEL Helpdesk @ ssd.servicedesk@nhs.net. \n Error message = "

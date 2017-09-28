@@ -15,6 +15,7 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 import sys
 import getopt
+import json
 
 # Import local settings
 from authentication import APIAuthentication # import the function from the authentication script which generates the access token
@@ -29,6 +30,9 @@ class connect():
 	
 		# The link to the first page of the CIP API results
 		self.interpretationlist="https://cipapi.genomicsengland.nhs.uk/api/interpretationRequestsList/?format=json"
+		
+		# The link for the interpretationRequest
+		self.interpretationrequest="https://cipapi.genomicsengland.nhs.uk/api/interpretationRequests/%s/%s/?format=json"
 		
 		# The probandID to return the report for
 		self.proband_id=""
@@ -73,6 +77,13 @@ class connect():
 		
 		# a flag to determine if the header is required to be changed to look like a report from the lab (as opposed to keeping the Gel geader to make it clear it's a GEL report).
 		self.remove_headers=""
+		
+		#lists to hold variants from the interpretation_request
+		self.tiered_variants=[]
+		self.list_of_CIP_candidate_variants=[]
+		
+		# create a variable to hold the various cip versions
+		self.max_cip_ver=0
 	
 	def take_inputs(self, argv):	
 		'''Capture the gel participant ID from the command line'''
@@ -98,12 +109,18 @@ class connect():
 				
 		if self.proband_id:
 			#build paths to reports
-			self.html_report=html_reports+self.proband_id+".html"
+			self.htmlfilename=self.proband_id+".html"
+			self.html_report=html_reports+self.htmlfilename
 			self.pdf_report=pdf_dir+self.proband_id+".pdf"
+			# variant list filenames
+			self.htmlvariantlistfilename=self.proband_id+"_variantlist.html"
+			self.htmlvariantlistfilenamepath=html_reports+self.htmlvariantlistfilename
+			self.variantlist_pdf_report=pdf_dir+self.proband_id+"_variantlist.pdf"
 			
 			#print "about to read API"
 			# Call the function to read the API
-			self.read_API_page()
+			json=self.read_API_page()
+			self.parse_json(json)
 	
 	def read_API_page(self):
 		'''This function returns all the cases that can be viewed by the user defined by the authentication token'''
@@ -115,7 +132,7 @@ class connect():
 			response = requests.get(self.interpretationlist, headers={"Authorization": "JWT " + self.token}) # note space is required after JWT 
 		#print "have read the API"
 		# pass this in the json format to the parse_json function
-		self.parse_json(response.json())
+		return response.json()
 		
 			
 	def parse_json(self,json):
@@ -143,19 +160,20 @@ class connect():
 				else:
 					# set flag to stop the search
 					found=True
+								
 					
-					#print "found patient"
-					# create a variable to hold the various cip versions
-					max_cip_ver=0
 
 					# loop through each report to find the highest cip_version
 					for j in range(len(sample["interpreted_genomes"])):
-						if int(sample["interpreted_genomes"][j]["cip_version"])>max_cip_ver:
-							max_cip_ver=sample["interpreted_genomes"][j]["cip_version"]
-
+						if int(sample["interpreted_genomes"][j]["cip_version"])>self.max_cip_ver:
+							self.max_cip_ver=sample["interpreted_genomes"][j]["cip_version"]
+					
+					#read the interpretation_request to pull out any variants
+					self.read_interpretation_request(sample)
+										
 					# for the highest cip version
 					for j in range(len(sample["interpreted_genomes"])):
-						if sample["interpreted_genomes"][j]["cip_version"]==max_cip_ver:
+						if sample["interpreted_genomes"][j]["cip_version"]==self.max_cip_ver:
 							
 							# take the most recent report generated for this CIP API (take the last report from the list of reports)
 							#NB this SHOULD be the last in the list but the url can be edited to make 100% (https://cipapi.genomicsengland.nhs.uk/api/ClinicalReport/123/1/2/3/ - the last value (3) is the report version)
@@ -189,7 +207,8 @@ class connect():
 								
 								#stop the annex tables being split over pages
 								soup=self.stop_annex_tables_splitting_over_page(soup)
-							
+								
+								
 							#pass to function to replace the GeL logo with that of the lab (and or UKAS)
 							soup=self.replace_GeL_logo(soup)
 							
@@ -205,10 +224,14 @@ class connect():
 							
 							#Can't change CSS or insert tables using beautiful soup so need to read and replace html file
 							self.edit_CSS(patient_info_dict)
-													
-							#pass modified file to create a pdf.
-							self.create_pdf(self.pdf_report,patient_info_dict)
 							
+							#pass modified file to create a pdf.
+							self.create_pdf(self.htmlfilename,self.pdf_report,patient_info_dict)
+
+							#check if a variant report is required
+							if len(self.list_of_CIP_candidate_variants)>0 or len(self.tiered_variants)>0:
+								#create variant report if required
+								self.create_variant_report(patient_info_dict)
 
 		# if proband not found 
 		if not found:
@@ -218,7 +241,8 @@ class connect():
 				self.interpretationlist=json['next']
 				#print "reading next page"
 				# Call the function to read the API
-				self.read_API_page()
+				json=self.read_API_page()
+				self.parse_json(json)
 			else:
 				# print statement to say not found
 				print "Record not found in the "+str(self.count) + " GeL records parsed"
@@ -234,6 +258,7 @@ class connect():
 			2 - edits the CSS which defines the banner colour so it is transparent
 			3 - Adds the date report generated to the table (was previously in the grey header)
 			4 - Adds in table with clinician referral information
+			5 - Add in variant table(s)
 			
 		'''
 		# read file into object (a list) 
@@ -323,10 +348,187 @@ class connect():
 										
 						# add the new html code back to the list
 						data[i]="".join(template_to_write)
-											
+			
+			
+			
 			#write the modified list back to a file
 			with open(self.html_report, "w") as file:
 				file.writelines(data)
+	
+	def create_variant_report(self,patient_info_dict):
+		'''This function takes a copy of the html report, keeps the heading, styling, referring clinician and patient info tables.
+		It then calls the make_variant_table which creates a table with all variants from the Interpretation request API and creates a new pdf.
+		'''
+			
+		# create an beautiful soup object for the html clinical report
+		soup=BeautifulSoup(open(self.html_report),"html.parser")
+		
+		# loop through and delete all div's which aren't ones we want to keep
+		for div in soup.find_all('div', {'class':'content-div'}):
+			# the patient info and clinician tables have a modified class to ensure they are not deleted
+			if "do-not-delete" in div['class']:
+				pass
+			#also keep the title banner
+			elif "title-banner" in div['class']:
+				pass
+			#otherwise delete from the report
+			else:
+				div.decompose()
+		
+		# write this new soup object to a file
+		with open(self.htmlvariantlistfilenamepath, "w") as file:
+			file.writelines(str(soup))
+		
+		#read this file into a python list
+		with open(self.htmlvariantlistfilenamepath, "r") as file:
+			data=file.readlines()
+			
+		# pass this list into a function which adds a table of variants
+		data=self.make_variant_table(data)
+		
+		#write the modified table back to a file			
+		with open(self.htmlvariantlistfilenamepath, "w") as file:
+			file.writelines(data)
+		
+		# modify the report title in the patient_info_dict (from config file)
+		patient_info_dict['report_title']=variant_list_title
+		
+		#pass modified file to create a pdf.
+		self.create_pdf(self.htmlvariantlistfilename,self.variantlist_pdf_report,patient_info_dict)
+	
+	def read_interpretation_request(self,sample):
+		'''Take the information for this proband and use the interpretation request to interrogate the interpretation request end point'''
+		
+		# retrieve the interpretation report id
+		ir_id  = sample['interpretation_request_id'].split('-')[0]
+		version = sample['interpretation_request_id'].split('-')[1]
+		
+		# build the url
+		self.interpretationlist=self.interpretationrequest % (ir_id,version)
+		
+		#send url to function to retrieve the json
+		interpretation_request=self.read_API_page()
+		
+		#check which cip have returned the data ()
+		if interpretation_request['cip']=="omicia":
+			self.read_omicia_data(interpretation_request)
+		elif interpretation_request['cip']=="congenica":
+			print "Each CIP returns the data in a different format. So far only the Omicia CIP can be read. Feel free to make a module for congenica!"
+		else:
+			print "Each CIP returns the data in a different format. So far only the Omicia CIP can be read. Feel free to make a module for your CIP!"
+			
+	def read_omicia_data(self,interpretation_request):
+		'''reads the omicia data format'''					
+		# if there are reported variants don't make the appendix
+		#loop through each cip version
+		for interpreted_genome in interpretation_request['interpreted_genome']:
+			# if it's the highest cip version
+			if interpreted_genome['cip_version'] == self.max_cip_ver:
+				# see if there is anything to report
+				if len(interpreted_genome['interpreted_genome_data']['reportedVariants'])>0:
+					# if there is stop
+					print "Variants in to be reported section. Will not create the variant appendix"
+				# if it's a negative report make the appendix
+				else:
+					# see if there are any tiered variants (these are in a list)
+					if len(interpretation_request['interpretation_request_data']['json_request']['TieredVariants']) > 0:
+						# for each variant
+						for variant in interpretation_request['interpretation_request_data']['json_request']['TieredVariants']:
+							# there can be a list of classifications for a variant eg if the gene is in multiple panels. loop through these incase one panel has a different tier to the others
+							for i in range(len(variant['reportEvents'])):
+								#capture the tier of the variant is (ignore tier3)
+								tier=variant['reportEvents'][i]['tier']
+								if tier in ["TIER1","TIER2"]:
+									#capture the required information
+									reference=variant['reference']
+									alternate=variant['alternate']
+									position=str(variant['position'])
+									chromosome=variant['chromosome']				
+									gene_symbol=variant['reportEvents'][i]['genomicFeature']['ids']['HGNC']
+									ensemblid=variant['reportEvents'][i]['genomicFeature']['ensemblId']
+									# build the variant description
+									variant_description= "chr"+chromosome+":"+position+reference+">"+alternate
+									if len(ensemblid) > 2:
+										gene_and_id=gene_symbol+"("+ensemblid+")"
+									else:
+										gene_and_id=gene_symbol
+									#add to a list as a tuple
+									self.tiered_variants.append((variant_description,gene_and_id))
+								
+					
+					# next need to find the CIP candidate variants
+										
+					# Then loop through again, looking for the highest CIP version
+					for interpreted_genome in interpretation_request['interpreted_genome']:
+						if interpreted_genome['cip_version'] == self.max_cip_ver:
+							# this is a list. capture this list in a variable
+							CIP_candidate_variants=interpreted_genome['interpreted_genome_data']['reportedVariants']
+					
+					# if it's not an empty listloop through this list of variants 
+					if len(CIP_candidate_variants)>0:
+						for variant in CIP_candidate_variants:
+							# within each variant there is a list of report events. loop through this list
+							for reportevent in range(len(variant['reportEvents'])):
+								# capture the tier
+								tier=variant['reportEvents'][reportevent]['tier']
+								#if tier 1 or 2 (ignoring tier3)
+								if tier in ["TIER1","TIER2"]:
+									#capture the descriptions
+									reference=variant['reference']
+									alternate=variant['alternate']
+									position=str(variant['position'])
+									chromosome=variant['chromosome']
+									# the gene symbol can be in multiple places so look in both places
+									if 'HGNC' in variant['reportEvents'][reportevent]['genomicFeature']:
+										gene_symbol=variant['reportEvents'][reportevent]['genomicFeature']['HGNC']
+										ensemblid=variant['reportEvents'][reportevent]['genomicFeature']['ensemblId']
+									elif 'HGNC' in variant['reportEvents'][reportevent]['genomicFeature']['ids']:
+										gene_symbol=variant['reportEvents'][reportevent]['genomicFeature']['ids']['HGNC']
+										ensemblid=variant['reportEvents'][reportevent]['genomicFeature']['ensemblId']
+									else:
+										print "can't find gene id. see url = " + self.interpretationlist
+										stop()
+									# set the variant description
+									variant_description= "chr"+chromosome+":"+position+reference+">"+alternate
+									#check if the candidate variant is the same as one in the gel tiered variants (this only matches on the variant_description)
+									if any(variant_description not in variants for variants in self.tiered_variants):
+										#check ensembl id is not blank
+										if len(ensemblid) > 2:
+											gene_and_id=gene_symbol+"("+ensemblid+")"
+										else:
+											# if it is blank do not add it	
+											gene_and_id=gene_symbol
+										
+										#add to a list as a tuple
+										self.tiered_variants.append((variant_description,gene_and_id))
+							
+		
+	def make_variant_table(self,data):
+		'''This function takes a html document in the form of a list (data)'''
+		# only create a table if there have been variants found
+		if len(self.tiered_variants)>0:
+			# create a div and set up title and table headers
+			for i in ['<div class="content-div">','<h3>Non-threatening variants</h3>','<table style=" page-break-inside: avoid !important">','<thead>','<tr><th>Variant</th><th>Gene Symbol (Ensembl ID)</th></tr>','</thead>','<tbody>']:
+				#insert these above the last 2 lines, with a new line return to make file neater to humans
+				data.insert(-3,i+"\n")			
+			# then loop through the set of variants, sorting on the gene symbol
+			for i in sorted(set(self.tiered_variants), key=lambda x: x[1]):
+				# add a new row for variant, across two columns
+				data.insert(-3,"<tr>\n")
+				data.insert(-3,'<td width="50%">'+i[0]+'</td>\n')
+				data.insert(-3,'<td width="50%">'+i[1]+'</td>\n')
+				data.insert(-3,"</tr>\n")
+			# close the table
+			for i in ['</tbody>','</table>','</div>']:
+				data.insert(-3,i+"\n")
+			# add in a statement below the table explaining what these variants represent
+			for i in ['<div class="content-div">','<p>\t\tThese variants were tier1 and tier2 variants which were not reported at the time of analysis.</p>','</div>']:
+				data.insert(-3,i+"\n")
+			
+		# return the list
+		return data
+		
+				
 		
 	def read_lims(self):
 		'''This function must create a dictionary which is used to populate the html variables 
@@ -566,7 +768,7 @@ class connect():
 		return html
 
 
-	def create_pdf(self,pdfreport_path,patient_info):
+	def create_pdf(self,htmlfilename,pdfreport_path,patient_info):
 		# add the path to wkhtmltopdf to the pdfkit config settings
 		pdfkitconfig = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
 		# create options to use in the footer
@@ -575,12 +777,13 @@ class connect():
 		# use Jinja to populate the variables within the html template
 		# first tell the system where to find the html template (this is written by beautiful soup above)
 		env = Environment(loader=FileSystemLoader(html_reports))
-		template = env.get_template(self.proband_id+".html")
+		template = env.get_template(htmlfilename)
+		
 		# create the pdf using template.render to populate variables from dictionary created in read_geneworks
 		pdfkit.from_string(template.render(patient_info), pdfreport_path, options=options, configuration=pdfkitconfig)
 		
 		# print 
-		print "done\nReport can be found at "+self.pdf_report
+		print "done\nReport can be found at "+pdfreport_path
 		
 	def fetchone(self, query):
 		# Connection
