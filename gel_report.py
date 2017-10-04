@@ -44,6 +44,10 @@ class connect():
 		# A count of GeL records parsed
 		self.count=0
 		
+		# A count of unblocked interpretation requests for this proband
+		self.unblocked_test_count=0
+		self.list_of_unblocked=[]
+		
 		# Usage example
 		self.usage = "python gel_report.py -g <GELParticipantID>"
 		
@@ -119,6 +123,9 @@ class connect():
 			#print "about to read API"
 			# Call the function to read the API
 			json=self.read_API_page()
+			# test for multiple unblocked Interpretation requests
+			self.test_for_multiple_unblocked(json)
+			# if test passed parse the json to pull out report
 			self.parse_json(json)
 	
 	def read_API_page(self):
@@ -247,7 +254,34 @@ class connect():
 				print "Record not found in the "+str(self.count) + " GeL records parsed. (It may be blocked)"
 				# assert that the number of GEL record parsed == the sample count provided in the JSON
 				assert self.count == json['count'], "self.count != gel's count"
-		
+	
+	def test_for_multiple_unblocked(self,json):	
+		# loop through each interpretation request
+		for sample in json['results']:
+			# if sample is blocked ignore
+			if sample["last_status"]=="blocked":
+				pass				
+			else:
+				# look for the desired proband id
+				if sample["proband"]==self.proband_id:
+					self.list_of_unblocked.append(sample['interpretation_request_id'])
+					# add to count
+					self.unblocked_test_count+=1
+					
+		# when finished with this page look at next page
+		if json['next']:
+			# update the self.interpretationlist with url for next page
+			self.interpretationlist=json['next']
+			json=self.read_API_page()
+			self.test_for_multiple_unblocked(json)
+		# if last page
+		else:
+			# if multiple interpretation requests
+			if len(self.list_of_unblocked) > 1:
+				print "STOP - multiple unblocked interpretation requests found for proband " + str(self.proband_id) + "\nInterpretation requests = "+",".join(self.list_of_unblocked)+"\nPlease inform GEL"
+				# stop
+				quit()
+					
 	def edit_CSS(self,patient_info_dict):
 		'''Can't change CSS or insert tables using beautiful soup so need to read and replace html file.
 		This function reads that file, loops through it and 
@@ -405,7 +439,7 @@ class connect():
 		
 		#send url to function to retrieve the json
 		interpretation_request=self.read_API_page()
-		print interpretation_request
+		#print interpretation_request
 		#check which cip was used. Each cip returns data in a different format so a different module is required.
 		if interpretation_request['cip']=="omicia":
 			self.read_omicia_data(interpretation_request)
