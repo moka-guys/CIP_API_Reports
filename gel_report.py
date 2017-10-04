@@ -145,23 +145,21 @@ class connect():
 		for sample in json['results']:
 			# increase the count of patients searched
 			self.count += 1
-			# look for the desired proband id
-			if sample["proband"]==self.proband_id:
-				# if sample is blocked ignore
-				if sample["last_status"]=="blocked":
-					print "last status = blocked for proband "+str(self.proband_id)+"\nNo Report will be generated"
+			# if sample is blocked ignore
+			if sample["last_status"]=="blocked":
+				#print "last status = blocked for proband "+str(self.proband_id)+"\nNo Report will be generated"
+				# may want to raise an exception here - however this includes a traceback which I don't want
+				#raise Exception("last status = blocked for proband "+str(self.proband_id))
+				
+				pass				
+				
+			else:
+				# look for the desired proband id
+				if sample["proband"]==self.proband_id:				
 					
-					# may want to raise an exception here - however this includes a traceback which I don't want
-					#raise Exception("last status = blocked for proband "+str(self.proband_id))
-					
-					#quit
-					quit()
-				else:
 					# set flag to stop the search
 					found=True
-								
-					
-
+						
 					# loop through each report to find the highest cip_version
 					for j in range(len(sample["interpreted_genomes"])):
 						if int(sample["interpreted_genomes"][j]["cip_version"])>self.max_cip_ver:
@@ -228,9 +226,9 @@ class connect():
 							self.create_pdf(self.htmlfilename,self.pdf_report,patient_info_dict)
 
 							print "length tiered_variants = "+str(len(self.tiered_variants))
+							
 							#check if a variant report is required
-							if len(self.tiered_variants)>0:
-								
+							if len(self.tiered_variants)>0:	
 								#create variant report if required
 								self.create_variant_report(patient_info_dict)
 
@@ -246,7 +244,7 @@ class connect():
 				self.parse_json(json)
 			else:
 				# print statement to say not found
-				print "Record not found in the "+str(self.count) + " GeL records parsed"
+				print "Record not found in the "+str(self.count) + " GeL records parsed. (It may be blocked)"
 				# assert that the number of GEL record parsed == the sample count provided in the JSON
 				assert self.count == json['count'], "self.count != gel's count"
 		
@@ -407,7 +405,7 @@ class connect():
 		
 		#send url to function to retrieve the json
 		interpretation_request=self.read_API_page()
-		
+		print interpretation_request
 		#check which cip was used. Each cip returns data in a different format so a different module is required.
 		if interpretation_request['cip']=="omicia":
 			self.read_omicia_data(interpretation_request)
