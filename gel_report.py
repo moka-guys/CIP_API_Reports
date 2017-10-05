@@ -224,20 +224,25 @@ class connect():
 								file.write(str(soup))
 
 							## Call function to pull out patient demographics from LIMS. capture dict
-							patient_info_dict=self.read_lims()
+							patient_info_dict=self.read_lims(sample["sites"])
 							
 							#Can't change CSS or insert tables using beautiful soup so need to read and replace html file
 							self.edit_CSS(patient_info_dict)
 							
+							print "creating clinical report"
+							
 							#pass modified file to create a pdf.
 							self.create_pdf(self.htmlfilename,self.pdf_report,patient_info_dict)
 
-							print "length tiered_variants = "+str(len(self.tiered_variants))
+							#print "length tiered_variants = "+str(len(self.tiered_variants))
 							
 							#check if a variant report is required
 							if len(self.tiered_variants)>0:	
 								#create variant report if required
+								print "creating variant report"
 								self.create_variant_report(patient_info_dict)
+							else:
+								print "no tiered or CIP candidate variants seen"
 
 		# if proband not found 
 		if not found:
@@ -557,13 +562,13 @@ class connect():
 		
 				
 		
-	def read_lims(self):
+	def read_lims(self, sites):
 		'''This function must create a dictionary which is used to populate the html variables 
 		eg patient_info_dict={"NHS":NHS,"InternalPatientID":InternalPatientID,"dob":DOB,"firstname":FName,"lastname":LName,"Sex":Sex,"clinician1":clinician1,"clinician1_add":clinician1_address,"copies":copies,"report_title":report_title}
 		NB report_title is from the config file'''
 		
 		#look for the pilot cases (starting with 5000)
-		if int(self.proband_id) > 49999999 and int(self.proband_id) < 59999999:
+		if "GSTT" in sites:
 			# set flag to stop looking through text file once found the patient
 			found=False
 			# Open the tab delimted text file
@@ -810,7 +815,7 @@ class connect():
 		pdfkit.from_string(template.render(patient_info), pdfreport_path, options=options, configuration=pdfkitconfig)
 		
 		# print 
-		print "done\nReport can be found at "+pdfreport_path
+		print "Report can be found at "+pdfreport_path
 		
 	def fetchone(self, query):
 		# Connection
