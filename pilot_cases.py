@@ -171,7 +171,8 @@ class connect():
 				if str(i).startswith("5"):
 					print "non pilot case starting with 5:"+str(i)
 			
-
+			print str(len(self.negneg)) + " negative negative cases can be reported:"
+			print ",".join(self.negneg)
 
 
 
