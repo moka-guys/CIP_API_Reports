@@ -219,12 +219,13 @@ class connect():
 
 
 			########################## check for probands listed in spreadsheet from GEL team not in CIP-API #####################			
+			# #print len(self.list_of_probands_in_spreadsheet)
 			# missing_pilots=[]
 			# # check for any cases not in CIP API
-			# for i in self.pilot_proband_list_from_clinic:
-				# if str(i) not in self.pilot_count:
+			# for i in self.list_of_probands_in_spreadsheet:
+				# if str(i) not in map(str,self.pilot_count):
 					# missing_pilots.append(i)
-			# # print self.pilot_count
+			# # # # # print self.pilot_count
 			# print str(len(missing_pilots)) + " probands id in spreadsheet but not in CIP-API "
 			# print missing_pilots
 			
