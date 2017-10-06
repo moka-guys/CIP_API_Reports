@@ -28,6 +28,9 @@ variant_list_title = "Appendix: Non-threatening variant list"
 # warning message if there is an error reported when generating the report
 warning_message = "Warning!Error making the report for GEL ID %s.\nIf issue continues for this sample contact GEL Helpdesk @ ge-servicedesk@genomicsengland.co.uk\nError message = "
 
+########################### CIP information ##########################
+# which CIP is to be used
+CIP="omicia"
 ########################### referral information ##########################
 # file containing pilot_patient_referral information
 pilot_patient_info = "/home/mokaguys/Apps/CIP_API/GEL_pilot_patient_referral_information.txt"

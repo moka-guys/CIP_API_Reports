@@ -15,7 +15,6 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 import sys
 import getopt
-import json
 
 # Import local settings
 from authentication import APIAuthentication # import the function from the authentication script which generates the access token
@@ -161,8 +160,8 @@ class connect():
 				pass				
 				
 			else:
-				# look for the desired proband id
-				if sample["proband"]==self.proband_id:				
+				# look for the desired proband id and make sure correct CIP
+				if sample["proband"]==self.proband_id and sample["cip"]==CIP:				
 					
 					# set flag to stop the search
 					found=True
