@@ -51,6 +51,10 @@ class connect():
 		# self.neg_pos
 		self.negpos=[]
 		
+		# list of omicia's
+		self.omicia=[]
+		self.non_omicia=[]
+		
 		#list of cases can't determine status
 		self.undetermined=[]
 		
@@ -108,7 +112,7 @@ class connect():
 			
 			#count total samples assessed
 			self.totaln += 1
-			
+				
 			#if pilot case
 			if "GSTT" in sample['sites']:
 				# increase the count of patients searched
@@ -119,12 +123,17 @@ class connect():
 					self.blocked.append(self.proband)
 				else:
 					self.unblocked_pilot_case.append(self.proband)
-					# retrieve the interpretation report id
-					ir_id  = sample['interpretation_request_id'].split('-')[0]
-					version = sample['interpretation_request_id'].split('-')[1]
-					
-					# build the url
-					self.read_interpretation_request(self.interpretationrequest % (ir_id,version))
+					# #check we are only looking at omicia interpretation requests
+					if sample["cip"]==CIP:
+						self.omicia.append((sample['proband'],sample['interpretation_request_id']))
+						# retrieve the interpretation report id
+						ir_id  = sample['interpretation_request_id'].split('-')[0]
+						version = sample['interpretation_request_id'].split('-')[1]
+						
+						# build the url
+						self.read_interpretation_request(self.interpretationrequest % (ir_id,version))
+					else:
+						self.non_omicia.append((sample['proband'],sample['interpretation_request_id']))
 			
 			# if it's not a pilot case record and stop
 			else:
@@ -144,7 +153,9 @@ class connect():
 			#check all pilot cases are accounted for
 			assert len(self.unblocked_pilot_case) + len(self.blocked) == len(self.pilot_count)
 			#check number of negative negative cases plus non-negative negative cases add up to unblocked cases
-			assert len(self.negneg)+len(self.negpos)+len(self.undetermined)==len(self.unblocked_pilot_case)
+			assert len(self.negneg)+len(self.negpos)+len(self.undetermined)==len(self.omicia)
+			#check number of omicia cases + non omicia cases add up to unblocked cases
+			assert len(self.non_omicia)+len(self.omicia)==len(self.unblocked_pilot_case)
 			
 			# print statements to say not found
 			print "samples in api = "+ str(self.api_count)
@@ -157,8 +168,12 @@ class connect():
 			print "number of negative negative cases = " + str(len(self.negneg))
 			print "number of cases with variants = " + str(len(self.negpos))
 			print "number of cases cannot determine # variants = " + str(len(self.undetermined))
+			print "number of omicia interpretation requests = " + str(len(self.omicia))
+			print "number of non-omicia interpretation requests = " + str(len(self.non_omicia))
+			print "number of probands with > 1 unblocked interpretation requests (from same CIP) = " + str(len(self.omicia)-len(set(self.pilot_count)))
 			
-		
+			
+			##################TESTS FOR PILOT CASES NOT STARTING WITH 5, or MAIN PROGRAMME CASES STARTING WITH 5#####################
 			# check if all pilot cases start with 5
 			for i in self.unblocked_pilot_case:
 				if str(i).startswith("5"):
@@ -171,28 +186,39 @@ class connect():
 				if str(i).startswith("5"):
 					print "non pilot case starting with 5:"+str(i)
 			
-			print str(len(self.negneg)) + " negative negative cases can be reported:"
-			print ",".join(self.negneg)
-
-
-
-
+			###############Identify the probands with multiple unblocked interpretation requests##########
+			# #empty dict to hold interpretation requests for each proband	
+			# multiple_IR={}
+			# #loop through list
+			# for i in self.omicia:
+				# # get proband from tuple
+				# proband = i[0]
+				# # add proband as key if not already there
+				# if int(proband) not in multiple_IR:
+					# multiple_IR[proband]=[]
+				# # loop through the list and add interpretation request to the list
+				# [multiple_IR[proband].append(i[1]) for item in self.omicia if proband in item]
 			
-			#print set(self.unblocked_pilot_case)
-			#print "checking for >1 unblocked pilot case"
-			#multiple_IR=[]
-			#for i in self.unblocked_pilot_case:
-			#	if self.unblocked_pilot_case.count(i) > 1:
-				#multiple_IR.append(i)
-		#	#print i + str(self.unblocked_pilot_case.count(i))
-		#	print set(multiple_IR)	
-			#print str(len(set(self.pilot_proband_list_from_clinic))) + " unique proband id's in list from clinic"
+			# # then delete any probands with only one interpretation request
+			# # loop through dict keys
+			# for i in multiple_IR.keys():
+				# # if less than 2 interpretation requests
+				# if len(multiple_IR[i])<2:
+					# # delete from dict
+					# multiple_IR.pop(i)
 			
-			#print len(self.spreadsheet_with_referring_clinician_info)
-			#print len(self.list_of_probands_in_spreadsheet)
-			#print len(self.all_gel_ids_in_spreadsheet)
-		
-		
+			# #report findings
+			# for i in multiple_IR:
+				# print str(i)+" has multiple unblocked omicia interpretation requests: "  + ",".join(map(str,multiple_IR[i]))
+			
+			
+			
+			########################## Print the neg neg cases which could be rpeorted ################################
+			#print str(len(self.negneg)) + " negative negative cases can be reported:"
+			#print ",".join(self.negneg)
+
+
+			########################## check for probands listed in spreadsheet from GEL team not in CIP-API #####################			
 			# missing_pilots=[]
 			# # check for any cases not in CIP API
 			# for i in self.pilot_proband_list_from_clinic:
@@ -202,6 +228,7 @@ class connect():
 			# print str(len(missing_pilots)) + " probands id in spreadsheet but not in CIP-API "
 			# print missing_pilots
 			
+			########################## check for any cases in GEL spreadsheet which aren't in CIP-API ##############################
 			# missing_pilots=[]
 			# # # check for any cases not in CIP API
 			# for i in self.all_gel_ids_in_spreadsheet:
@@ -211,6 +238,7 @@ class connect():
 			# print str(len(missing_pilots)) + " probands id in self.all_gel_ids_in_spreadsheet but not in CIP-API "
 			# #print missing_pilots
 			
+			############################ check for any cases in API which aren't on the spreadsheet ###########################
 			# bonus_pilots=[]
 			# # check for any cases in CIP API but not in spreadhseet
 			# for i in set(self.pilot_count):
@@ -219,59 +247,6 @@ class connect():
 			# print str(len(bonus_pilots)) + " probands in CIP-API but not in self.all_gel_ids_in_spreadsheet"
 			# #print bonus_pilots
 			
-			# proband_only=[]
-			# for i in set(self.list_of_probands_in_spreadsheet):
-				# if str(i) not in map(str,self.pilot_count):
-					# proband_only.append(i)
-			# print str(len(set(self.list_of_probands_in_spreadsheet))-len(proband_only))+ " probands in clinic spreadsheet which are in CIP-API"
-			# print str(len(proband_only)) + " probands in list of probands from clinic but not in CIP-API"
-			
-			# proband_only_not_in_CIP=[]
-			# for i in set(self.pilot_count):
-				# if str(i) not in map(str,self.list_of_probands_in_spreadsheet):
-					# proband_only_not_in_CIP.append(i)
-			# print str(len(proband_only_not_in_CIP)) + " in CIP but not marked as a proband in list list of probands from clinic"
-			
-			# non_proband=[]
-			# for i in set(self.list_of_non_probands_in_spreadsheet):
-				# if str(i) not in map(str,self.pilot_count):
-					# non_proband.append(i)
-			# print str(len(set(self.list_of_non_probands_in_spreadsheet))-len(non_proband))+ " NON probands in clinic spreadsheet which are in CIP-API"
-			# print str(len(non_proband)) + " NON probands in clinic list which are in CIP-API"
-			
-			# non_proband_not_in_CIP=[]
-			# for i in set(self.pilot_count):
-				# if str(i) not in map(str,self.list_of_non_probands_in_spreadsheet):
-					# non_proband_not_in_CIP.append(i)
-			# print str(len(non_proband_not_in_CIP)) + " in CIP but not marked as a family member in list of probands from clinic"
-			
-			# list2=[]
-			# list3=[]
-			# for i in set(self.spreadsheet_with_referring_clinician_info):
-				# if i in self.list_of_probands_in_spreadsheet:
-					# list2.append(i)
-				# elif i in self.all_gel_ids_in_spreadsheet:
-					# list3.append(i)
-				# else:
-					# print "proband in list 1 but not list 2 or 3: " + str(i)
-			
-			# print str(len(list2)) +" probands from list 1 which are marked as probands in list2)"
-			# print str(len(list3)) +" probands from list 1 which aren't marked as probands in list2)"
-			
-						
-			# list1_only=[]
-			# for i in set(self.spreadsheet_with_referring_clinician_info):
-				# if i not in self.list_of_probands_in_spreadsheet:
-					# list1_only.append(i)
-			
-			# print str(len(set(self.spreadsheet_with_referring_clinician_info))) + " unique proband ids in list1"
-			# print str(len(set(self.list_of_probands_in_spreadsheet))) + " unique proband ids in list2"
-			
-			# print str(len(list1_only)) + "cases in list1 but not list2"
-			# print list1_only
-			
-			# print str(len(list2_only)) + "cases in list2 but not list1"
-			# print list2_only
 			
 			
 	def read_interpretation_request(self,url):
