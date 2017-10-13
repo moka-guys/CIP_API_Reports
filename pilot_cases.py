@@ -44,18 +44,18 @@ class connect():
 		#not ready to analyse
 		self.not_ready_for_analysis=[]
 		# list of neg_neg
-		self.negneg=[]
+		self.negneg_pilot=[]
 		
 		# self.neg_pos
-		self.negpos=[]
+		self.negpos_pilot=[]
 		
 		# list of omicia's
-		self.omicia=[]
-		self.omicia_probands=[]
-		self.non_omicia=[]
+		self.omicia_pilot=[]
+		self.omicia_probands_pilot=[]
+		self.non_omicia_pilot=[]
 		
 		#list of cases can't determine status
-		self.undetermined=[]
+		self.undetermined_pilot=[]
 		
 		#list for pilot
 		self.pilot_unblocked=[]
@@ -135,9 +135,9 @@ class connect():
 					# #check we are only looking at omicia interpretation requests
 					if sample["cip"]==CIP:
 						# add this proband to a list of probands that have been sent to omicia
-						self.omicia_probands.append(sample['proband'])
+						self.omicia_probands_pilot.append(sample['proband'])
 						# also add a tuple of the interpretation request and proband to a list
-						self.omicia.append((sample['proband'],sample['interpretation_request_id']))
+						self.omicia_pilot.append((sample['proband'],sample['interpretation_request_id']))
 						
 						# retrieve the interpretation report id
 						ir_id  = sample['interpretation_request_id'].split('-')[0]
@@ -147,7 +147,7 @@ class connect():
 						self.read_interpretation_request(self.interpretationrequest % (ir_id,version))
 					else:
 						# otherwise is not an omicia interpretation request so count and stop
-						self.non_omicia.append((sample['proband'],sample['interpretation_request_id']))
+						self.non_omicia_pilot.append((sample['proband'],sample['interpretation_request_id']))
 			
 			# if it's not a pilot case record and stop
 			else:
@@ -171,27 +171,27 @@ class connect():
 			#check all pilot cases are accounted for
 			assert len(self.pilot_unblocked) +len(self.not_ready_for_analysis)+ len(self.pilot_blocked) == len(self.pilot_count)
 			#check number of negative negative cases plus non-negative negative cases add up to unblocked cases
-			assert len(self.negneg)+len(self.negpos)+len(self.undetermined)==len(self.omicia)
+			assert len(self.negneg_pilot)+len(self.negpos_pilot)+len(self.undetermined_pilot)==len(self.omicia_pilot)
 			#check number of omicia cases + non omicia cases add up to unblocked cases
-			assert len(self.non_omicia)+len(self.omicia)==len(self.pilot_unblocked)
+			assert len(self.non_omicia_pilot)+len(self.omicia_pilot)==len(self.pilot_unblocked)
 			
 			# Blocked probands may have another interpretation request which is not blocked.
-			truely_blocked=[]
+			truely_blocked_pilot=[]
 			# for each proband in blocked list
 			for blocked_pilot in set(self.pilot_blocked):
 				#if its not in omicia list
-				if blocked_pilot not in self.omicia_probands:
+				if blocked_pilot not in self.omicia_probands_pilot:
 					# then it is truely blocked
-					truely_blocked.append(blocked_pilot)
+					truely_blocked_pilot.append(blocked_pilot)
 			
 			# count how many probands are still being processed and haven't been sent to the GMC yet
-			different_status=[]
+			different_status_pilot=[]
 			# for each proband which has a different status
 			for diff_status in set(self.not_ready_for_analysis):
 				# if its not in omicia list (ie if it hasn't already been shared with GMC)
-				if diff_status not in self.omicia_probands:
+				if diff_status not in self.omicia_probands_pilot:
 					# add to list
-					different_status.append(diff_status)
+					different_status_pilot.append(diff_status)
 					
 			# print summary statements
 			print "samples in api = "+ str(self.api_count)
@@ -199,17 +199,17 @@ class connect():
 			#print "number of non pilot probands = " + str(len(self.non_pilot_case))
 			print "number of unique non-pilot = " + str(len(set(self.non_pilot_case)))
 			print "number of unique pilot = " + str(len(set(self.pilot_count)))
-			print "number of unique blocked pilot probands = " + str(len(set(truely_blocked)))
-			print "number of unique pilot probands not yet ready for analysis by GMC= " + str(len(set(different_status)))
-			print "number of unique unblocked pilot cases= " + str(len(set(self.omicia_probands)))
-			print "number of negative negative cases = " + str(len(self.negneg))
-			print "number of cases with variants = " + str(len(self.negpos))
-			print "number of cases cannot determine # variants = " + str(len(self.undetermined))
-			print "number of omicia interpretation requests = " + str(len(self.omicia))
-			print "number of non-omicia interpretation requests = " + str(len(self.non_omicia))
-			print "number of probands with > 1 unblocked interpretation requests (from same CIP) = " + str(len(self.omicia)-len(set(self.pilot_count))+len(set(different_status)))
+			print "number of unique blocked pilot probands = " + str(len(set(truely_blocked_pilot)))
+			print "number of unique pilot probands not yet ready for analysis by GMC= " + str(len(set(different_status_pilot)))
+			print "number of unique unblocked pilot cases= " + str(len(set(self.omicia_probands_pilot)))
+			print "number of pilot negative negative cases = " + str(len(self.negneg_pilot))
+			print "number of pilot cases with variants = " + str(len(self.negpos_pilot))
+			print "number of cases cannot determine # variants = " + str(len(self.undetermined_pilot))
+			print "number of pilot omicia interpretation requests = " + str(len(self.omicia_pilot))
+			print "number of pilot non-omicia interpretation requests = " + str(len(self.non_omicia_pilot))
+			print "number of pilot probands with > 1 unblocked interpretation requests (from same CIP) = " + str(len(self.omicia_pilot)-len(set(self.pilot_count))+len(set(different_status_pilot)))
 			
-			print map(str,self.negneg)
+			print map(str,self.negneg_pilot)
 			
 			##################TESTS FOR PILOT CASES NOT STARTING WITH 5, or MAIN PROGRAMME CASES STARTING WITH 5#####################
 			# check if all pilot cases start with 5
@@ -228,14 +228,14 @@ class connect():
 			# #empty dict to hold interpretation requests for each proband	
 			# multiple_IR={}
 			# #loop through list
-			# for i in self.omicia:
+			# for i in self.omicia_pilot:
 				# # get proband from tuple
 				# proband = i[0]
 				# # add proband as key if not already there
 				# if int(proband) not in multiple_IR:
 					# multiple_IR[proband]=[]
 				# # loop through the list and add interpretation request to the list
-				# [multiple_IR[proband].append(i[1]) for item in self.omicia if proband in item]
+				# [multiple_IR[proband].append(i[1]) for item in self.omicia_pilot if proband in item]
 			
 			# # then delete any probands with only one interpretation request
 			# # loop through dict keys
@@ -252,8 +252,8 @@ class connect():
 			
 			
 			########################## Print the neg neg cases which could be rpeorted ################################
-			#print str(len(self.negneg)) + " negative negative cases can be reported:"
-			#print ",".join(self.negneg)
+			#print str(len(self.negneg_pilot)) + " negative negative cases can be reported:"
+			#print ",".join(self.negneg_pilot)
 
 
 			########################## check for probands listed in spreadsheet from GEL team not in CIP-API #####################			
@@ -336,12 +336,12 @@ class connect():
 		
 		#if a tier1 or 2 variant has been seen add probandid to the dict
 		if positive:
-			self.negpos.append(self.proband)
+			self.negpos_pilot.append(self.proband)
 		elif ignore:
-			self.undetermined.append(self.proband)
+			self.undetermined_pilot.append(self.proband)
 		#otherwise add to the negative dict
 		else:
-			self.negneg.append(self.proband)
+			self.negneg_pilot.append(self.proband)
 		
 		# reset max_cip_version
 		self.max_cip_ver = 0
