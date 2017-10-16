@@ -208,12 +208,12 @@ class connect():
 								#pass to function to put things from the over header into a different table
 								soup=self.move_date_report_generated(soup)
 								
-								#stop the annex tables being split over pages
-								soup=self.stop_annex_tables_splitting_over_page(soup)
-								
 								
 							#pass to function to replace the GeL logo with that of the lab (and or UKAS)
 							soup=self.replace_GeL_logo(soup)
+							
+							#stop the annex tables being split over pages
+							soup=self.stop_annex_tables_splitting_over_page(soup)
 							
 							# pass to function to expand coverage
 							soup=self.expand_coverage(soup)
