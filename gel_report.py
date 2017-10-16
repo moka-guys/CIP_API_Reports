@@ -498,39 +498,35 @@ class connect():
 					for variant in CIP_candidate_variants:
 						# within each variant there is a list of report events. loop through this list
 						for reportevent in range(len(variant['reportEvents'])):
-							# capture the tier
-							tier=variant['reportEvents'][reportevent]['tier']
-							#if tier 1 or 2 (ignoring tier3)
-							if tier in ["TIER1","TIER2"]:
-								#capture the descriptions
-								reference=variant['reference']
-								alternate=variant['alternate']
-								position=str(variant['position'])
-								chromosome=variant['chromosome']
-								# the gene symbol can be in multiple places so look in both places
-								if 'HGNC' in variant['reportEvents'][reportevent]['genomicFeature']:
-									gene_symbol=variant['reportEvents'][reportevent]['genomicFeature']['HGNC']
-									ensemblid=variant['reportEvents'][reportevent]['genomicFeature']['ensemblId']
-								elif 'HGNC' in variant['reportEvents'][reportevent]['genomicFeature']['ids']:
-									gene_symbol=variant['reportEvents'][reportevent]['genomicFeature']['ids']['HGNC']
-									ensemblid=variant['reportEvents'][reportevent]['genomicFeature']['ensemblId']
+							#capture the descriptions
+							reference=variant['reference']
+							alternate=variant['alternate']
+							position=str(variant['position'])
+							chromosome=variant['chromosome']
+							# the gene symbol can be in multiple places so look in both places
+							if 'HGNC' in variant['reportEvents'][reportevent]['genomicFeature']:
+								gene_symbol=variant['reportEvents'][reportevent]['genomicFeature']['HGNC']
+								ensemblid=variant['reportEvents'][reportevent]['genomicFeature']['ensemblId']
+							elif 'HGNC' in variant['reportEvents'][reportevent]['genomicFeature']['ids']:
+								gene_symbol=variant['reportEvents'][reportevent]['genomicFeature']['ids']['HGNC']
+								ensemblid=variant['reportEvents'][reportevent]['genomicFeature']['ensemblId']
+							else:
+								print "can't find gene id. see url = " + self.interpretationlist
+								stop()
+							# set the variant description
+							variant_description= "chr"+chromosome+":"+position+reference+">"+alternate
+							
+							#check if the candidate variant is the same as one in the gel tiered variants (this only matches on the variant_description)
+							if any(variant_description not in variants for variants in self.tiered_variants):
+								#check ensembl id is not blank
+								if len(ensemblid) > 2:
+									gene_and_id=gene_symbol+"("+ensemblid+")"
 								else:
-									print "can't find gene id. see url = " + self.interpretationlist
-									stop()
-								# set the variant description
-								variant_description= "chr"+chromosome+":"+position+reference+">"+alternate
+									# if it is blank do not add it	
+									gene_and_id=gene_symbol
 								
-								#check if the candidate variant is the same as one in the gel tiered variants (this only matches on the variant_description)
-								if any(variant_description not in variants for variants in self.tiered_variants):
-									#check ensembl id is not blank
-									if len(ensemblid) > 2:
-										gene_and_id=gene_symbol+"("+ensemblid+")"
-									else:
-										# if it is blank do not add it	
-										gene_and_id=gene_symbol
-									
-									#add to a list as a tuple
-									self.tiered_variants.append((variant_description,gene_and_id))
+								#add to a list as a tuple
+								self.tiered_variants.append((variant_description,gene_and_id))
 						
 							
 		
