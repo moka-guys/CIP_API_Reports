@@ -734,11 +734,11 @@ class connect():
 	def stop_annex_tables_splitting_over_page(self,html):
 		'''This script takes the referenced databases and software version tables and stops these being broken over pages'''
 		# find all h3 tags
-		for header in html.find_all('h3'):
+		#for header in html.find_all('h3'):
 			# Put in a page break before the referenced databases to prevent the header being on a different page to the table
-			if header.get_text()=="Referenced Databases":
+		#	if header.get_text()=="Referenced Databases":
 				# add the page break
-				header['style']="page-break-before: always;"
+		#		header['style']="page-break-before: always;"
 		# find all tables
 		for table in html.find_all('table'):
 			#find the table head
