@@ -267,7 +267,7 @@ class connect():
 				pass				
 			else:
 				# look for the desired proband id
-				if sample["proband"]==self.proband_id:
+				if sample["proband"]==self.proband_id and sample["cip"]==CIP:
 					self.list_of_unblocked.append(sample['interpretation_request_id'])
 					# add to count
 					self.unblocked_test_count+=1
