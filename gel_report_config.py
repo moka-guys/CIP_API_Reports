@@ -1,6 +1,6 @@
 ####################### Where the App lives##############
-#app_home="/home/mokaguys/Apps/CIP_API/" # note trailing slash!!
-app_home="/home/mokaguys/Documents/CIP_API_development/"#development
+app_home="/home/mokaguys/Apps/CIP_API/" # note trailing slash!!
+#app_home="/home/mokaguys/Documents/CIP_API_development/"#development
 
 ####################### Authentication ##################
 # path to files containing
