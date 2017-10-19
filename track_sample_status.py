@@ -70,7 +70,7 @@ class connect():
 			#if pilot case
 			if "GSTT" in sample['sites']:			
 				# only samples where status == sent_to_gmcs
-				if sample["last_status"]=="sent_to_gmcs":
+				if sample["last_status"] in ["sent_to_gmcs","report_generated","report_sent"]:
 					# check we are only looking at omicia interpretation requests
 					if sample["cip"]==CIP:
 						# check if proband is in dictionary
@@ -87,7 +87,7 @@ class connect():
 			# if it's main program...
 			else:
 				# only samples where status == sent_to_gmcs
-				if sample["last_status"]=="sent_to_gmcs":
+				if sample["last_status"] in ["sent_to_gmcs","report_generated","report_sent"]:
 					# #check we are only looking at omicia interpretation requests
 					if sample["cip"]==CIP:
 						# check if proband is in dictionary
