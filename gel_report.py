@@ -48,7 +48,7 @@ class connect():
 		self.list_of_unblocked=[]
 		
 		# Usage example
-		self.usage = "python gel_report.py -g <GELParticipantID>"
+		self.usage = "python gel_report.py -g <GELParticipantID> -h True/False"
 		
 		# Header line to remove
 		self.old_header="Genomics England, Queen Mary University of London,"
