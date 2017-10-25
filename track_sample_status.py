@@ -4,6 +4,7 @@ This script reads the CIP-API, identifies any probands which have been sent to t
 import requests
 import pyodbc
 import json
+import datetime
 
 # Import local settings
 from authentication import APIAuthentication # import the function from the authentication script which generates the access token
@@ -38,6 +39,8 @@ class connect():
 		# dict to hold probands and IRs
 		self.omicia_pilot={}
 		self.omicia_main={}
+		self.now=datetime.datetime.now()
+		self.now=self.now.strftime('%Y-%m-%d %H:%M:%S')
 				
 		
 	def build_url(self):	
@@ -150,7 +153,7 @@ class connect():
 				pass
 			else:
 				# else built insert query
-				self.insert_query = "insert into dbo.[100KAnalysisStatus] (GEL_ProbandID,IR_ID,GEL_programme,Lab_Status) values (%s,'%s',%s,%s)"%(proband,str(IR_id)+"-"+str(version),self.pilot,self.awaiting_analysis_status)
+				self.insert_query = "insert into dbo.[GEL100KAnalysisStatus] (GEL_ProbandID,IR_ID,GEL_programme,Lab_Status,DateAdded) values (%s,'%s',%s,%s,'%s')"%(proband,str(IR_id)+"-"+str(version),self.pilot,self.awaiting_analysis_status,self.now)
 				# until database is connected to moka just print the query
 				print self.insert_query
 				
@@ -187,7 +190,7 @@ class connect():
 				pass
 			else:
 				# else built insert query
-				self.insert_query = "insert into dbo.[100KAnalysisStatus] (GEL_ProbandID,IR_ID,GEL_programme,Lab_Status) values (%s,'%s',%s,%s)"%(proband,str(IR_id)+"-"+str(version),self.main,self.awaiting_analysis_status)
+				self.insert_query = "insert into dbo.[GEL100KAnalysisStatus] (GEL_ProbandID,IR_ID,GEL_programme,Lab_Status,DateAdded) values (%s,'%s',%s,%s,'%s')"%(proband,str(IR_id)+"-"+str(version),self.main,self.awaiting_analysis_status,self.now)
 				#self.insert_query_function()
 				print self.insert_query
 		
