@@ -26,7 +26,7 @@ report_title = "100,000 Genomes Project Rare Disease Primary Findings"
 variant_list_title = "Appendix: Non-threatening variant list"
 
 # warning message if there is an error reported when generating the report
-warning_message = "Warning!Error making the report for GEL ID %s.\nIf issue continues for this sample contact GEL Helpdesk @ ge-servicedesk@genomicsengland.co.uk\nReport will be generated in the subfolder \"reports_with_errors\"\nError message = "
+warning_message = "Warning!Error making the report for GEL ID %s.\nIf issue continues for this sample contact bioinformatics team at gst-tr.mokaguys@nhs.net\nReport will be generated in the subfolder \"reports_with_errors\"\nError message = "
 
 ########################### CIP information ##########################
 # which CIP is to be used
