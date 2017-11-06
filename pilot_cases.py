@@ -212,7 +212,7 @@ class connect():
 			print "number of pilot non-omicia interpretation requests = " + str(len(self.non_omicia_pilot))
 			print "number of pilot probands with > 1 unblocked interpretation requests (from same CIP) = " + str(len(self.omicia_pilot)-len(set(self.pilot_count))+len(set(different_status_pilot)))
 			
-			#print map(str,self.negneg_pilot)
+			print map(str,self.negneg_pilot)
 			
 			##################TESTS FOR PILOT CASES NOT STARTING WITH 5, or MAIN PROGRAMME CASES STARTING WITH 5#####################
 			# check if all pilot cases start with 5

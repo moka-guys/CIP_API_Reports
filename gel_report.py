@@ -666,8 +666,9 @@ class connect():
 				for message in div.find_all('p'):
 					print (warning_message % self.proband_id) + message.get_text()
 				
-				#if required stop the report being generated
-				#quit()
+				# change the output directory so error reports are put somewhere else
+				self.pdf_report=pdf_error_dir+self.proband_id+".pdf"
+				self.variantlist_pdf_report=pdf_error_dir+self.proband_id+"_variantlist.pdf"
 				
 		# return html
 		return html
