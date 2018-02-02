@@ -29,7 +29,7 @@ class connect():
 		self.token=APIAuthentication().get_token()
 	
 		# The link to the first page of the CIP API results
-		self.interpretationlist = "https://cipapi.genomicsengland.nhs.uk/api/2/interpretation-request?cip={cip}&status=sent_to_gmcs%2Creport_generated%2Creport_sent&members={proband}"
+		self.interpretationlist = "https://cipapi.genomicsengland.nhs.uk/api/2/interpretation-request?cip={cip}&status=sent_to_gmcs%2Creport_generated%2Creport_sent&members={proband}&format=json"
 		
 		# The link for the interpretationRequest
 		self.interpretationrequest = "https://cipapi.genomicsengland.nhs.uk/api/interpretationRequests/%s/%s/?format=json"
@@ -135,12 +135,11 @@ class connect():
 		if json['count'] == 0:
 			print "no record for proband %s with the status sent_to_gmcs,report_generated or report_sent"
 		elif json['count'] > 1:
-			print "STOP - multiple unblocked interpretation requests for a single CIP found for proband " + str(self.proband_id) + "\nPlease inform GEL"
-		for sample in json['results']:
-			# look for the desired proband id and make sure correct CIP
-			if sample["proband"] == self.proband_id and sample["cip"] == config.CIP:				
-				# set flag to stop the search
-				found = True
+			print "STOP - multiple unblocked interpretation requests for desired CIP (%s) found for proband %s\nPlease inform GEL" % (config.CIP, self.proband_id)
+		else:
+			for sample in json['results']:
+				# ensure have found the desired proband id and make sure correct CIP
+				assert sample["proband"] == self.proband_id and sample["cip"] == config.CIP
 				
 				# variable to record the highest version of the report
 				highest_report_version = 0
@@ -667,12 +666,6 @@ class connect():
 	
 	def stop_annex_tables_splitting_over_page(self,html):
 		'''This script takes the referenced databases and software version tables and stops these being broken over pages'''
-		# find all h3 tags
-		#for header in html.find_all('h3'):
-			# Put in a page break before the referenced databases to prevent the header being on a different page to the table
-		#	if header.get_text()=="Referenced Databases":
-				# add the page break
-		#		header['style']="page-break-before: always;"
 		# find all tables
 		for table in html.find_all('table'):
 			#find the table head
