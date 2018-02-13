@@ -133,7 +133,10 @@ class connect():
 		
 			
 	def parse_json(self,json):
-		'''This function takes the json file containing all cases. This is parsed to look for the desired proband id'''	
+		'''
+		This function takes the json file containing all cases whcih match the CIP, status and proband filter. 
+		A few checks are performed to ensure there is only one record before the record is parsed and the report is downloaded and modified
+		'''	
 		# loop through the results
 		if json['count'] == 0:
 			print "no record for proband %s with the status sent_to_gmcs,report_generated or report_sent" % (self.proband_id)
